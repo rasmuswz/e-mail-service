@@ -19,3 +19,12 @@ def pull():
 def push():
     """- Git push changes to the cloud"""
     local("git push");
+
+
+def install():
+    """- Install e-mail-services web application on this machine"""
+    print("Todo(rwz): Implement me");
+
+def deploy():
+    """- Deploy this e-mail-service to another remote machine"""
+    print("Todo(rwz): Implement me");
