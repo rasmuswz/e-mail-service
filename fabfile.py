@@ -11,3 +11,11 @@ def commit(msg="Lazy commit no message given"):
 def add(file=""):
     """- Git add a file"""
     local("git add "+file);
+
+def pull():
+    """- Git pull """
+    local("git pull");
+
+def push():
+    """- Git push changes to the cloud"""
+    local("git push");
