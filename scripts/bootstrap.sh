@@ -2,75 +2,271 @@
 #
 # Tool chain boot-strap script
 #
+# Author: Rasmus Winther Zakarias
+#
+# Description:
+#
+# This script boot-straps the build process downloading the required
+# SDKs and tools. For this boot-strap processing we assume the
+# following least requirements to be met:
+#
+#  - bash-3.2.57 or later
+#  - OSX: port/brew 
+#  - Linux: apt-get
+#  - Optional: color terminal (make output nicer)
 #
 
-OS=`uname -s`
+#
+# Load helper
+#
+SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
+source ${SCRIPT_DIR}/helper.sh
 
-PYTHON=`which python`
-PIP=`which pip`
-FABRIC=`which fab`
+#
+# Result from checks are mapped here
+#
+put "CHKPRIV" "check_priv"
 
-GREEN="\033[1;33m"
-NORM="\033[0;1m"
-
-function start_action() {
-    echo -ne "${1}\t\t\t ... ";
+#
+# Check bash version
+#
+function check_bash() {
+    if [[ "${BASH_VERSION}" < "3.2" ]]; then
+	warning "Bash version is less than 3.2"
+    else
+	goodnews "Bash version checks out"
+    fi
 }
 
-function end_action() {
-    [ "${1}" == "0" ] && 
-    echo -e "[\033[33;1m OK \033[0;1m]" ||
-    echo -e "[\033[31;1mFAIL\033[0;1m]"
+#
+# On Linux we require apt-get
+#
+function check_apt_get() {
+    APTGET=`which apt-get`
+    if [ $(check_exec_exists ${APTGET}) == "0" ];
+    then
+	goodnews "${APTGET} was found" ||
+	put "INSTALLER" "sudo ${APTGET} install python"
+    else
+      died "required tool ${APTGET} on this platform wasn't found"
+    fi
 }
 
-function install_python() {
-    start_action "Installing Python "
-    if [ "${OS}" == "Darwin" ]; then
-	[ -z `which brew` ] || brew install python
-	[ -z `which port` ] || sudo port install python
+#
+# On FreeBSD we require pkg
+#
+function check_pkg() {
+    PKG=`which pkg`
+    if [ $(check_exec_exists ${PKG}) == "0" ]; 
+    then
+	goodnews "${PKG} was found"
+	put "INSTALLER" "sudo pkg install python"
+    else
+	died "required tool ${PKG} on this platform wasn't found"
+    fi
+}
+
+#
+# On OSX we require either Brew or MacPorts
+#
+function check_brew_or_port() {
+    BREW=`which brew`
+    PORT=`which port`
+    if [ $(check_exec_exists ${BREW}) == "0" ];
+    then
+	goodnews "${BREW} was found"
+	put "CHKPRIV" "true"
+	put "INSTALLER" "brew install python"
+	return
     fi
 
-    if [ "${OS}" == "FreeBSD" ]; then
-	sudo pkg install python27
+    if [ $(check_exec_exists ${PORT}) == "0" ] ;
+    then
+	goodnews "${PORT} was found"
+	put "INSTALLER" "sudo port port install python"
     fi
 
-    if [ "${OS}" == "Linux" ]; then 
-	APTGET=`which apt-get`
-	if [ -z ${APTGET} ]; then
-	    echo "Error: We only support Ubuntu Linux"
-	    exit -1
+    if [ -z $(get "INSTALLER") ]; 
+    then
+	died "${BREW} nor ${PORT} were found please install one of them"
+    fi
+}
+
+#
+# Check install tool based on OSTYPE
+#
+function check_install_tool() {
+    case "${OSTYPE}" in
+	linux*)
+	    check_apt_get ;;
+	freebsd*)
+	    check_pkg ;;
+	darwin*)
+	    check_brew_or_port ;;
+	*)
+	    died "OS type is not recognized unable to determine package manager"
+    esac
+}
+
+#
+# Check whether we need to install python
+#
+function check_python() {
+    PYTHON=`which python`
+    if [ -x ${PYTHON} ];
+    then
+	PYVER=$(${PYTHON} -V 2>&1)
+	if [[ ${PYVER} < "Python 2.7" ]] &&
+	   [[ ${PYVER} > "Python 2.8" ]]; 
+	then
+	    warn "We prefer Python 2.7 version ${PYVER} was found".
+	else
+	    goodnews "${PYTHON} in version ${PYVER} was found"
 	fi
-	sudo apt-get install python
+    else
+	return 1
     fi
+    return 0
+}
 
-	    
-    end_action 0
+#
+# Run installer command
+#
+function install_python() {
+    $($(get "INSTALLER"))
+}
+
+function check_fabric() {
+    FAB=`which fab2`
+    if [[ -x ${FAB} ]]; 
+    then
+	goodnews "Fabric is installed"
+	return 0
+    fi
+    return 1
+}
+
+function check_pip() {
+    PIP=`which pip`
+    if [[ -x ${PIP} ]]; 
+    then 
+	goodnews "Pip is installed"
+	put "PIP" "${PIP}"
+	return 0
+    fi
+    return 1
+}
+
+function download() {
+    echo "import urllib; urllib.urlretrieve('${1}','${2}');" | $(get "PYTHON")
 }
 
 function install_pip() {
-    start_action "Installing pip"
-    sudo easy_install pip
-    end_action 0
+    download "https://bootstrap.pypa.io/get-pip.py"
+    if [ "$?" != "0" ];
+    then
+	return -1;
+    fi
+    cat "get-pip.py" | $(get "PYTHON")
+    if [ "$?" != "0" ];
+    then
+	return -1;
+    fi
+    return 0
 }
 
 function install_fabric() {
-    start_action "Installing fabric"
-    sudo pip install fabric
-    end_action 0
+    $(get "PIP") install fabric
+    if [ "$?" == "0" ];
+    then 
+	return 0;
+    else
+	return -1;
+    fi
 }
 
+function install_golang_sdk() {
+    mkdir -p ${SCRIPT_DIR}/../thirdparty
+    case ${OSTYPE} in
+	linux*)
+	    [[ -f "go.tgz" ]] &&
+	    download "https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz" "go.tgz" 
+	    tar xfz go.tgz -C ${SCRIPT_DIR}/../thirdparty ;;
+	freebsd*)
+	    [[ -f "go.tgz" ]] &&
+	    download "https://storage.googleapis.com/golang/go1.5.1.freebsd-amd64.tar.gz" "go.tgz" 
+	    tar xfz go.tgz -C ${SCRIPT_DIR}/../thirdparty ;;
+	darwin*)
+	    [[ -f "go.tgz" ]] &&
+	    download "https://storage.googleapis.com/golang/go1.5.1.darwin-amd64.pkg" "go.pkg"
+	    `which installer` -pkg go.pkg -target .;;
+	*)
+	    died "Didn't have go-lang sdk download for OSTYPE ${OSTYPE}"
+    esac
 
-if [ -z ${PYTHON} ]; then
-    install_python
-fi
+    if [ "$?" == "0" ];
+    then
+	return 0;
+    fi
+    return 1;
+}
 
-if [ -z ${PIP} ]; then
-    install_pip
-fi
+function install_dart_sdk() {
+    return 1;
+}
 
-if [ -z ${FABRIC} ]; then
-    install_fabric
-fi
+function check_go_sdk() {
+    GO=`which go`
+    if [[ -x ${GO} ]];
+    then
+	return 0;
+    fi
+    return 1
+}
+
+function check_dart_sdk() {
+    DART=`which dart`
+    if [[ -x ${DART} ]];
+    then
+	return 0;
+    fi
+    return 1
+}
+
+function main() {
+    check_bash
+    check_python
+    if [ "$?" == "1" ]; then
+	check_install_tool
+	action "Checking priviledges" $(get "CHKPRIV")
+	action "Installing Python using $(get "INSTALLER") " install_python
+    else
+	put "PYTHON" "`which python`"
+    fi 
+
+    check_fabric
+    if [ "$?" == "1" ]; then
+	check_pip
+	if [ "$?" == "1" ]; 
+	then
+	    action "Installing pip" install_pip
+	fi
+	action "Installing Fabric: " install_fabric
+    fi
+
+    check_go_sdk
+    if [ "$?" == "1" ]; then
+	action "Installing Google Go" install_golang_sdk
+    fi
+
+    check_dart_sdk
+    if [ "$?" == "1" ]; then
+	action "Installing Dart SDK" install_dart_sdk
+    fi
+
+    goodnews "Everything seems to be in order."
+}
+
+main
 
 
-echo "Done. Type \"fab install\" to install this package."

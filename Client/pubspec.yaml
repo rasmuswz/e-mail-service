@@ -1,0 +1,7 @@
+name: emailclient
+version: 0.0.1
+dependencies:
+   polymer: ^1.0.0-rc.1
+transformers:
+- polymer:
+     entry_points: index.html

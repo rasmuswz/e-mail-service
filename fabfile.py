@@ -1,30 +1,23 @@
-from fabric.api import local
+#
+# Tooling 
+#
+# Author: Rasmus Winther Zakarias
+#
+# This file is used to deploy e-mail-service
+# on a linux/OSX box after it has been built.
+#
+from fabric.api import *
 
-def status():
-    """- This target is equivalent to git status."""
-    local("git status .");
+#
+# deployment
+#
+env.hosts = ['ubuntu@mail1.bitlab.dk','rwz@mail0.bitlab.dk']
 
-def commit(msg="Lazy commit no message given"):
-    """- Commit taking argument msg, e.g. fab commit:msg=\"Hey cool stuff added\"."""
-    local("git commit -am \"" + msg + "\"");
-
-def add(file=""):
-    """- Git add a file"""
-    local("git add "+file);
-
-def pull():
-    """- Git pull """
-    local("git pull");
-
-def push():
-    """- Git push changes to the cloud"""
-    local("git push");
-
-
-def install():
-    """- Install e-mail-services web application on this machine"""
-    print("Todo(rwz): Implement me");
-
+#
+#
+#
 def deploy():
-    """- Deploy this e-mail-service to another remote machine"""
-    print("Todo(rwz): Implement me");
+    with cd ("build"):
+        put("release.tgz","~");
+        run("tar xfz release.tgz");
+        run("pub serve");
