@@ -1,0 +1,12 @@
+name: bitlab_email_client
+version: 0.0.1
+homepage: mail.bitlab.dk
+
+
+
+environment:
+    sdk: '>=1.12.0'
+
+dependencies:
+
+transformers:

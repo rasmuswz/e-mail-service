@@ -14,7 +14,7 @@ from fabric.api import *
 env.hosts = ['ubuntu@mail1.bitlab.dk','rwz@mail0.bitlab.dk']
 
 #
-#
+# 
 #
 def deploy():
     with cd ("build"):
