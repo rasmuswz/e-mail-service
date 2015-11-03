@@ -126,7 +126,7 @@ def deploy():
 
         transfer_and_unpack_tarballs(taggedDir,tag)
 
-        check_for_and_install_GOSDK_on_remote()
+        check_for_and_install_GOSDK_on_remote(taggedDir)
 
         # basePath=run("pwd");
         # if not exists('go'):
