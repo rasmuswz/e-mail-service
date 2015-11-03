@@ -103,7 +103,8 @@ def get_os_specific_GO_into(d):
         run("echo we are on OSX");
 
 #
-# Build GoWorkspace on remote host
+# Install GoSDK on the report and return the Path to Go-Tools
+# executables directory, aka go/bin.
 #
 # Note! Go create platform specific binaries meaning that we need to
 # deploy the source and rebuild it on the production environment.
@@ -113,6 +114,7 @@ def check_for_and_install_GOSDK_on_remote(taggedDir):
     d=run("pwd").strip();
     if not exists(d+"/go"):
         get_os_specific_GO_into(d)
+    return d+"go/bin"
     
 
     
@@ -134,31 +136,10 @@ def deploy():
 
         transfer_and_unpack_tarballs(taggedDir,tag)
 
-        check_for_and_install_GOSDK_on_remote(taggedDir)
+        absGoBinDir = check_for_and_install_GOSDK_on_remote(taggedDir)
 
-        # basePath=run("pwd");
-        # if not exists('go'):
-        #     ostype=run("uname -s");
-        #     if "linux" in ostype or "Linux" in ostype:
-        #         if not exists("go1.5.1.freebsd-amd64.tar.gz"):
-        #             run("wget --no-check-certificate  "+
-        #                 "https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz");
-        #         run("tar xfz go1.5.1.linux-amd64.tar.gz");
-        #     if "FreeBSD" in ostype:
-        #         if not exists("go1.5.1.freebsd-amd64.tar.gz"):
-        #             run("wget --no-check-certificate  "+
-        #                 "https://storage.googleapis.com/golang/go1.5.1.freebsd-amd64.tar.gz");
-        #         run("tar xfz go1.5.1.freebsd-amd64.tar.gz");
-        #     if "darwin" in ostype:
-        #         run("wget --no-check-certificate"+
-        #             " https://storage.googleapis.com/golang/go1.5.1.darwin-amd64.tar.gz");
-        #         run("tar xfz go1.5.1.darwin-amd64.tar.gz");
-        # with shell_env(PATH="${PATH}:"+basePath+"/go/bin",
-        #                GOROOT=basePath+"/go",
-        #                GOPATH=basePath+"/"+taggedDir+"/goworkspace"):
-        #     print("${PATH}:"+basePath+"/go/bin");
-        #     with cd(taggedDir+"/goworkspace"):
-        #         run("PATH=${PATH}:"+basePath+"/go/bin && go install mail.bitlab.dk");
-                
+        with cd(taggedDir+"/goworkspace"):
+            run("PATH=${PATH}:"+absGoBinDir+ " && go install mail.bitlab.dk");
+        
     
 
