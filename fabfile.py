@@ -85,7 +85,7 @@ def transfer_and_unpack_tarballs(taggedDir,tag):
     run("tar xfz "+taggedDir+"/go.tgz -C "+taggedDir+"/goworkspace");
 
 
-def get_os_specific_GO():
+def get_os_specific_GO_into(d):
     ostype=run("uname -s");
     if ostype.lower() == "linux":
         run("echo we are on linux");
