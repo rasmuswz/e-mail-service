@@ -29,13 +29,10 @@ func NewServer(docRoot string) *WebServer {
 
 func (s *WebServer) viewHandler(w http.ResponseWriter, r *http.Request) {
 	var path = r.URL.Path;
-	if ("" == path) {
-		path = "index.html";
+	if ("" == path || "/" == path) {
+		path = "/index.html";
 	}
 
-	if (path == "/main.dart") {
-		path = "/main.dart.js";
-	}
 
 	filename := s.docRoot+path;
 

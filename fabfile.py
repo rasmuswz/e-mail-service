@@ -144,9 +144,14 @@ def sync_with_git():
 def start_server(taggedDir):
     webServerExec=taggedDir+"/goworkspace/bin/webserver"
     webServerRoot=taggedDir+"/dartworkspace/build/web"
-    
-    sudo("screen -d -m -S \"WebServer\" "+webServerExec+" "+webServerRoot)
-    run("screen -d -m -S \"MTAContainer\" "+taggedDir+"/goworkspace/bin/mail.bitlab.dk")
+    webServerSession="webserver"
+    MTAServerSession="mtaserver"
+
+    sudo("screen -S "+webServerSession+" -X quit")
+    sudo("screen -S "+mtaServerSession+" -X quit")
+
+    sudo("screen -d -m -S "+webServerSession+" "+webServerExec+" "+webServerRoot)
+    run("screen -d -m -S "+taggedDir+"/goworkspace/bin/mail.bitlab.dk")
 
 #
 # Deploy the service to the mail.bitlab.dk servers.
