@@ -25,7 +25,7 @@ information. In addition to an inbox and the ability to compose
 e-mails our service (and this is the new thing) presents mailing lists
 of people logged in nearby. An example would be a <b>one mile</b> list
 allowing the user to send an email to his contacts (people he has
-received or send mails to) logged in with in a range of mile from the
+received or send mails to) logged in with in a range of one mile from the
 users current location.
 
 On the technical side we provide a <b>web-mail front-end</b> with a back-end
