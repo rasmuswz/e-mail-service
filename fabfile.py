@@ -20,6 +20,7 @@ import subprocess
 # bash
 # uname -s
 # mkdir
+# screen
 #
 # at least one hosts needs MySQL for the Storage component.
 #
@@ -92,17 +93,17 @@ def transfer_and_unpack_tarballs(taggedDir,tag):
 def get_os_specific_GO_into(d):
     ostype=run("uname -s");
     if ostype.lower() == "linux":
-        run("echo we are on linux");
+        run("echo we are on linux box");
         run("wget --no-check-certificate  "+
             "https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz")
         run("tar xfz go1.5.1.linux-amd64.tar.gz -C "+d)
     if ostype.lower() == "freebsd":
-        run("echo we are on freebsd");
+        run("echo we are on freebsd box");
         run("wget --no-check-certificate  "+
             "https://storage.googleapis.com/golang/go1.5.1.freebsd-amd64.tar.gz");
         run("tar xfz go1.5.1.freebsd-amd64.tar.gz -C"+d);
     if ostype.lower() == "darwin":
-        run("echo we are on OSX");
+        run("echo we are on a darwin box, TODO(rwz): Not implemented yet");
 
 #
 # Install GoSDK on the remote and return the Path to Go-Tools
@@ -112,33 +113,47 @@ def get_os_specific_GO_into(d):
 # deploy the source and rebuild it on the production environment.
 #
 def check_for_and_install_GOSDK_on_remote(taggedDir):
-    run("echo \"TODO(rwz): Install Go SDK\"");
     d=run("pwd").strip();
     if not exists(d+"/go"):
         get_os_specific_GO_into(d)
     return d+"/go/bin"
 
-def make_go_path(goWorkspaceDir):
-    with cd(goWorkspaceDir):
-        return run("pwd").strip();
-
+#
+#
+#
 def buildGoWorkspace(goBinDir,goWorkspaceDir):
     goPath=make_go_path(goWorkspaceDir)
     with cd(goWorkspaceDir):
         with shell_env(GOPATH=goPath,
                        GOROOT=goBinDir+"/.."):
             run("PATH=${PATH}:"+goBinDir+ " && go install mail.bitlab.dk");
+
+def make_go_path(goWorkspaceDir):
+    with cd(goWorkspaceDir):
+        return run("pwd").strip();
+
     
+
+def sync_with_git():
+    local("git pull");
+    local("git commit -am \"Deploying standby\" || true ");
+    local("git pull");
+
+
+def start_pub_serve(taggedDir):
+    with cd(taggedDir+"/"+dartworkspace):
+        run("screen -d -m -S\"Dart\" pub serve")
 
 #
 # Deploy the service to the mail.bitlab.dk servers.
 #
 @hosts(['ubuntu@mail1.bitlab.dk','rwz@mail0.bitlab.dk'])
 def deploy():
-    local("git pull");
-    local("git commit -am \"Deploying standby\" || true ");
-    local("git pull");
+    
+    sync_with_git()
+
     run("mkdir -p deploy");
+
     with cd("deploy"):
         
         tag = make_git_tag()
