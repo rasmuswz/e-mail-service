@@ -114,7 +114,7 @@ def check_for_and_install_GOSDK_on_remote(taggedDir):
     d=run("pwd").strip();
     if not exists(d+"/go"):
         get_os_specific_GO_into(d)
-    return d+"go/bin"
+    return d+"/go/bin"
     
 
     
