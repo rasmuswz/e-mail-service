@@ -127,6 +127,7 @@ def buildGoWorkspace(goBinDir,goWorkspaceDir):
         with shell_env(GOPATH=goPath,
                        GOROOT=goBinDir+"/.."):
             run("PATH=${PATH}:"+goBinDir+ " && go install mail.bitlab.dk");
+            run("PATH=${PATH}:"+goBinDir+ " && go install mail.bitlab.dk/utilities/webserver");
 
 def make_go_path(goWorkspaceDir):
     with cd(goWorkspaceDir):
@@ -140,9 +141,11 @@ def sync_with_git():
     local("git pull");
 
 
-def start_pub_serve(taggedDir):
-    with cd(taggedDir+"/"+dartworkspace):
-        run("screen -d -m -S\"Dart\" pub serve")
+def start_server(taggedDir):
+    webServerExec=taggedDir+"/goworkspace/bin/webserver"
+    webServerRoot=taggedDir+"/dartworkspace/build/web"
+    run("screen -d -m -S\"WebServer\" "+webServerExec+" "+webServerRoot)
+    run("screen -d -m -S\"MTAContainer\" "+taggedDir+"/goworkspace/bin/mail.bitlab.dk")
 
 #
 # Deploy the service to the mail.bitlab.dk servers.
@@ -166,5 +169,5 @@ def deploy():
 
         buildGoWorkspace(absGoBinDir,taggedDir+"/goworkspace")
         
-    
+        start_server(taggedDir)
 
