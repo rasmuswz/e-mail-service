@@ -123,8 +123,9 @@ def make_go_path(goWorkspaceDir):
         return run("pwd").strip();
 
 def buildGoWorkspace(goBinDir,goWorkspaceDir):
+    goPath=make_go_path(goWorkspaceDir)
     with cd(goWorkspaceDir):
-        with shell_env(GOPATH=make_go_path(goWorkspaceDir),
+        with shell_env(GOPATH=goPath,
                        GOROOT=goBinDir+"/.."):
             run("PATH=${PATH}:"+goBinDir+ " && go install mail.bitlab.dk");
     
