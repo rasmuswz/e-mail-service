@@ -63,5 +63,5 @@ func main() {
 
 	println("Serving from: "+os.Args[1]);
 	http.HandleFunc("/", NewServer(os.Args[1]).viewHandler);
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":80", nil)
 }

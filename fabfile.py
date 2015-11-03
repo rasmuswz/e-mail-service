@@ -144,7 +144,8 @@ def sync_with_git():
 def start_server(taggedDir):
     webServerExec=taggedDir+"/goworkspace/bin/webserver"
     webServerRoot=taggedDir+"/dartworkspace/build/web"
-    run("screen -d -m -S \"WebServer\" "+webServerExec+" "+webServerRoot)
+    
+    sudo("screen -d -m -S \"WebServer\" "+webServerExec+" "+webServerRoot)
     run("screen -d -m -S \"MTAContainer\" "+taggedDir+"/goworkspace/bin/mail.bitlab.dk")
 
 #
