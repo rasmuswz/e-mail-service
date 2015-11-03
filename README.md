@@ -4,7 +4,7 @@ E Mail Service
 
 This is now work-in-progress.
 
-Want to get going Fast deploying GeoMail, [Click here](#Deploy, Testing, Build, Getting)
+Want to get going Fast deploying GeoMail, [Click here](#deploy-testing-build-getting)
 
 
 ![Dev logo](docs/images/devlogo.png) Concept and Design
