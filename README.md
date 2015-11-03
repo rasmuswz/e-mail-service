@@ -8,7 +8,9 @@ E Mail Service
 
 This is now work-in-progress.
 
-Want to get going Fast deploying GeoMail, [Click here](#deploy-test-build-get)
+[GeoMail Live](https://mail.bitlab.dk)
+
+[Click here](#deploy-test-build-get)
 
 
 ![Dev logo](docs/images/devlogo.png) Concept and Design
