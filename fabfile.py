@@ -84,14 +84,28 @@ def transfer_and_unpack_tarballs(taggedDir,tag):
     run("tar xfz "+taggedDir+"/dart.tgz -C "+taggedDir+"/dartworkspace");
     run("tar xfz "+taggedDir+"/go.tgz -C "+taggedDir+"/goworkspace");
 
+
+def get_os_specific_GO():
+    ostype=run("uname -s");
+    if ostype.lower() == "linux":
+        run("echo we are on linux");
+    if ostype.lower() == "freebsd":
+        run("echo we are on freebsd");
+    if ostype.lower() == "darwin":
+        run("echo we are on OSX");
+
 #
 # Build GoWorkspace on remote host
 #
 # Note! Go create platform specific binaries meaning that we need to
 # deploy the source and rebuild it on the production environment.
 #
-def check_for_and_install_GOSDK_on_remote():
+def check_for_and_install_GOSDK_on_remote(taggedDir):
     run("echo \"TODO(rwz): Install Go SDK\"");
+    dir=run("pwd").strip();
+    if not exists(dir+"/deploy/go"):
+        get_os_specific_GO_into(dir+"/deploy/go");
+    
 
     
 
