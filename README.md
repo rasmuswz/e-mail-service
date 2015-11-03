@@ -51,8 +51,7 @@ To store e-mails for users INBOXes we have a storage container having a <b>REST-
 Our storage container only support Oracles <b>MySQL</b> technology for now, however a clear and clean interface
 is defined for supporting e.g. a file based solution in a High-Perf-Distributed-File-Systems or other database types.
 
-<b>custom</b> E-mails delivery is ensure by fail-over.
-In this way GeoMail is scalable and reliable.
+In this way we intend GeoMail to be scalable and reliable.
 
 System Design
 ---------------
