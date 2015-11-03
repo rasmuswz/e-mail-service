@@ -28,9 +28,30 @@ allowing the user to send an email to his contacts (people he has
 received or send mails to) logged in with in a range of mile from the
 users current location.
 
-On the technical side we provide a web-mail front-end with a back-end
-server abstracting any number of MTA-providers like MailGun, Mandrill,
-Amazon SeS and SMTP transports. E-mails delivery is ensure by fail-over.
+On the technical side we provide a <b>web-mail front-end</b> with a back-end
+server <b>abstracting any number</b> of MTA-providers like MailGun, Mandrill,
+Amazon SeS and SMTP transports. 
+See the [Systems Design](https://github.com/rasmuswz/e-mail-service#system-design) below.
+A MTA-container runs with multiple MTA-provider-components inside to 
+offers a <b>unified API</b> for <i>sending</i> and <i>receiving</i> emails. Also, it provides ensure reliablity through 
+fail-over if ANY MTA-provider should have a fall-out. Wrt. performance the container takes a 
+<b>Scheduling</b>-strategy (we provide Round Robin out of the Box) and one could implement an adaptive
+scheduling sending e-mails according to performance stats.
+
+We provide a <b>generic</b> SMTP based provider that can interface with PostFix, Gmail, Hotmail or any
+other mail-provider using them as MTA-relay for sending e-mails.
+
+We provide a <b>Custom</b> provider for MailGun that is specialized towards using their comprehensive API
+including their <b>WebHooks API</b>  for getting <b>health information</b> about sent e-mails and 
+also we use their <b>Routes API</b> to get notified when e-mails arrive. 
+
+We provide a <Custom</b> provider for <b>Amazon SeS</b>, TODO(rwz): write me.
+
+To store e-mails for users INBOXes we have a storage container having a <b>REST-based JSon API</b>.
+Our storage container only support Oracles <b>MySQL</b> technology for now, however a clear and clean interface
+is defined for supporting e.g. a file based solution in a High-Perf-Distributed-File-Systems or other database types.
+
+<b>custom</b> E-mails delivery is ensure by fail-over.
 In this way GeoMail is scalable and reliable.
 
 System Design
