@@ -145,7 +145,7 @@ def start_server(taggedDir):
     webServerExec=taggedDir+"/goworkspace/bin/webserver"
     webServerRoot=taggedDir+"/dartworkspace/build/web"
     webServerSession="webserver"
-    MTAServerSession="mtaserver"
+    mtaServerSession="mtaserver"
 
     sudo("screen -S "+webServerSession+" -X quit || true")
     sudo("screen -S "+mtaServerSession+" -X quit || true")
