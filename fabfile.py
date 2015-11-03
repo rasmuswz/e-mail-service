@@ -91,12 +91,12 @@ def get_os_specific_GO_into(d):
         run("echo we are on linux");
         run("wget --no-check-certificate  "+
             "https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz")
-        run("tar xfz go1.5.1.linux-amd64.tar.gz")
+        run("tar xfz go1.5.1.linux-amd64.tar.gz -C "+d)
     if ostype.lower() == "freebsd":
         run("echo we are on freebsd");
         run("wget --no-check-certificate  "+
             "https://storage.googleapis.com/golang/go1.5.1.freebsd-amd64.tar.gz");
-        run("tar xfz go1.5.1.freebsd-amd64.tar.gz");
+        run("tar xfz go1.5.1.freebsd-amd64.tar.gz -C"+d);
     if ostype.lower() == "darwin":
         run("echo we are on OSX");
 
@@ -110,7 +110,7 @@ def check_for_and_install_GOSDK_on_remote(taggedDir):
     run("echo \"TODO(rwz): Install Go SDK\"");
     dir=run("pwd").strip();
     if not exists(dir+"/deploy/go"):
-        get_os_specific_GO_into(dir+"/deploy/go");
+        get_os_specific_GO_into(dir+"/deploy");
     
 
     
