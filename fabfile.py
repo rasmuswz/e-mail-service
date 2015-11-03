@@ -101,7 +101,7 @@ def check_for_and_install_GOSDK_on_remote():
 @hosts(['ubuntu@mail1.bitlab.dk','rwz@mail0.bitlab.dk'])
 def deploy():
     local("git pull");
-    local("git commit -am \"Deploying standby\"");
+    local("git commit -am \"Deploying standby\" || true");
     local("git pull");
     run("mkdir -p deploy");
     with cd("deploy"):
