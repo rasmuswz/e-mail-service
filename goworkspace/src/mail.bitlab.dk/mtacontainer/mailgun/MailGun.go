@@ -10,7 +10,7 @@ package mailgunprovider
 import (
 	"mail.bitlab.dk/model"
 	"log"
-	"github.com/mailgun-go"
+	"github.com/mailgun/mailgun-go"
 	"net/http"
 	"strconv"
 	"errors"
@@ -19,6 +19,12 @@ import (
 	"mail.bitlab.dk/mtacontainer"
 	"os"
 	"strings"
+	"crypto/aes"
+	"encoding/base64"
+	"crypto/sha256"
+	"crypto/cipher"
+	"encoding/hex"
+	"hash"
 )
 
 const (
@@ -26,13 +32,16 @@ const (
 	MG_SRV_DMN = "mail.bitlab.dk";
 // REST service access point
 	MG_API_URL = "https://api.mailgun.net/v3/" + MG_SRV_DMN + "/";
-// Key gotten from MG-account using log-in at
-// https://mailgun.com/sessions/new
-	MG_API_KEY = "key-1693daa393947a8e56e33133b82ca1cd";
+// Encrypted API key, key gotten from MG-account using log-in at
+// https://mailgun.com/sessions/new. Now we can safely commit and push this
+// to GitHub.
+	MG_API_ENC_KEY = "UO7jcR8J+s17B8DXJN7bbkS3MreTHJVtUjZcTr352zerwSm2AAAAAAAAAAAAAAAA";
 // E-mail to notify when service state changes e.g. when it goes up and down
 	MG_RPT_EML = "r@wz.gl"; // Send health information about this provider to this address
 // Route Action that account MailGun shall have
-	MG_RUT_ACT="forward(\"https://mail.bitlab.dk:31415/msg\")";
+	MG_RUT_ACT = "forward(\"https://mail.bitlab.dk:31415/msg\")";
+
+	MG_CNF_KEY = "apikeykey";
 )
 
 
@@ -60,6 +69,7 @@ type MailGunProvider struct {
 	out    chan model.Email;
 	inc    chan model.Email;
 	health chan mtacontainer.Event;
+	config map[string]string;
 }
 
 // Commands to control this service
@@ -67,11 +77,11 @@ type Cmd uint32;
 
 // The Cmd channel has these three messages
 const (
-	// Tell Send and Receive routes to die
+// Tell Send and Receive routes to die
 	CMD_TERMINATE = 0x01;
-	// Report that Send has terminated
+// Report that Send has terminated
 	CMD_SEND_HAS_TERMINATED = 0x02;
-	// Report that Receive has terminated
+// Report that Receive has terminated
 	CMD_RECV_HAS_TERMINATED = 0x03;
 )
 
@@ -161,7 +171,7 @@ func (mgp *MailGunProvider) mgSend(m model.Email) {
 		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN, err);
 	} else {
 		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_BEAT,
-			errors.New("MailGun says: "+mm+" for sending message giving it id "+mailId));
+			errors.New("MailGun says: " + mm + " for sending message giving it id " + mailId));
 
 	}
 }
@@ -272,7 +282,7 @@ func (mgp *MailGunProvider) checkRoute() bool {
 		route := routes[r];
 		for a := range route.Actions {
 			action := route.Actions[a];
-			if (strings.Compare(action,MG_RUT_ACT) == 0) {
+			if (strings.Compare(action, MG_RUT_ACT) == 0) {
 				routeFound = true;
 				mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_OK,
 					errors.New("Everything is fine, we found the route."));
@@ -367,17 +377,75 @@ func (mgp *MailGunProvider) sendMaintanenceMessage(msg string) {
 	mgp.out <- goingUpMessage;
 }
 
+func computeAesKey(passphrase string) []byte {
+	var randomOracle hash.Hash = sha256.New();
+	randomOracle.Write([]byte(passphrase));
+	println("[keygen] passphrase as bytes:\n" + hex.Dump([]byte(passphrase)));
+	var hashedPassword = randomOracle.Sum(nil);
+	var rawKey = hashedPassword[:16];
+
+	return rawKey;
+}
+
+func encryptApiKey(apiKey string, passphrase string) string {
+
+	var plaintext = []byte(apiKey);
+	var aesKey = computeAesKey(passphrase);
+
+	var aesBlockCipher, aesBlockCipherErr = aes.NewCipher(aesKey);
+	if (aesBlockCipherErr != nil) {
+		return "";
+	}
+
+	var iv = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	var aesBlockCipherCounterMode = cipher.NewCTR(aesBlockCipher, iv);
+
+	var cipherText = make([]byte, ((len(plaintext) / 16 + 1) * 16));
+	aesBlockCipherCounterMode.XORKeyStream(cipherText, plaintext);
+
+	return base64.StdEncoding.EncodeToString(cipherText);
+}
+
+//
+// From MailGun DashBoard we see that the secret api key is 36 Ascii-characters
+//
+func decryptApiKey(config map[string]string, encryptedKeyB64 string) string {
+	const apiKeyLen = 36;
+
+	var cipherText, cipherTextErr = base64.StdEncoding.DecodeString(encryptedKeyB64);
+	if cipherTextErr != nil {
+		return "";
+	}
+
+	var aesKey = computeAesKey(config[MG_CNF_KEY]);
+	var aesBlockCipher, aesBlockCipherErr = aes.NewCipher(aesKey);
+	if (aesBlockCipherErr != nil) {
+		return "";
+	}
+
+	var iv = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	var aesBlockCipherCounterMode = cipher.NewCTR(aesBlockCipher, iv);
+
+	var plaintext = make([]byte, len(cipherText));
+	aesBlockCipherCounterMode.XORKeyStream(plaintext, cipherText);
+
+	return string(plaintext[:apiKeyLen]);
+}
+
 // Construct a Mail Gun Provider
-func NewMailGun(log *log.Logger) mtacontainer.MTAProvider {
+func NewMailGun(log *log.Logger, config map[string]string) mtacontainer.MTAProvider {
 	var result *MailGunProvider = new(MailGunProvider);
-	result.mg = mailgun.NewMailgun("mail.bitlab.dk", MG_API_KEY, "");
+	var apiKey = decryptApiKey(config, MG_API_ENC_KEY);
+
+	result.config = config;
+	result.mg = mailgun.NewMailgun("mail.bitlab.dk", apiKey, "");
 	result.log = log;
 
 	// setup channels
-	result.out   = make(chan model.Email);
-	result.inc   = make(chan model.Email);
-	result.cmd   = make(chan Cmd);
-	result.health= make(chan mtacontainer.Event);
+	result.out = make(chan model.Email);
+	result.inc = make(chan model.Email);
+	result.cmd = make(chan Cmd);
+	result.health = make(chan mtacontainer.Event);
 
 	// for routines to serve
 	go result.sendingRoutine();

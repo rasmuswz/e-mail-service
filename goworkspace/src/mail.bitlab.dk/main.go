@@ -31,12 +31,24 @@ func main()  {
 	fmt.Println(GREETING);
 	fmt.Println(COPYRIGHT+"\n\n");
 
+	fmt.Println("Parts of the source code contains API keys which are encrypted");
+	fmt.Println("Please provide the password: ");
+	var passphrase,_,passphraseErr = bufio.NewReader(os.Stdin).ReadLine();
+	if passphraseErr != nil {
+		log.Fatalln("Could not read user input.");
+	}
+
 	// get Stdout logger
 	log := log.New(os.Stdout,"[Log]",log.Lshortfile | log.Ltime | log.Ldate);
 	log.Print("Initial logger created, hi Log ");
 
+
+
 	// fire up the MTA container
-	mp  := mailgunprovider.NewMailGun(log);
+	var mailGunConfig = make(map[string]string);
+	mailGunConfig[mailgunprovider.MG_CNF_KEY] = string(passphrase);
+
+	mp  := mailgunprovider.NewMailGun(log, mailGunConfig);
 	providers := make([]mtacontainer.MTAProvider,1);
 	providers[0] = mp;
 	container := mtacontainer.CreateMTAContainer(mtacontainer.NewRoundRobinScheduler(providers));

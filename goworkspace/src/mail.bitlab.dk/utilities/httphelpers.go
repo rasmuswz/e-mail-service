@@ -16,7 +16,7 @@ func BasicAuthorization(user string, passphrase string) string {
 }
 
 //
-// Talk HTTP to url with http headers
+// Talk HTTP-GET to url with http headers
 //
 func GetQuery(url string, http_headers map[string]string) string {
 
