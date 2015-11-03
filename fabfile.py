@@ -105,7 +105,7 @@ def get_os_specific_GO_into(d):
         run("echo we are on OSX");
 
 #
-# Install GoSDK on the report and return the Path to Go-Tools
+# Install GoSDK on the remote and return the Path to Go-Tools
 # executables directory, aka go/bin.
 #
 # Note! Go create platform specific binaries meaning that we need to
