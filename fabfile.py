@@ -84,7 +84,9 @@ def transfer_and_unpack_tarballs(taggedDir,tag):
     run("tar xfz "+taggedDir+"/dart.tgz -C "+taggedDir+"/dartworkspace");
     run("tar xfz "+taggedDir+"/go.tgz -C "+taggedDir+"/goworkspace");
 
-
+#
+# Download GoSDK and unpack it properly on the remote server
+#
 def get_os_specific_GO_into(d):
     ostype=run("uname -s");
     if ostype.lower() == "linux":
@@ -108,9 +110,9 @@ def get_os_specific_GO_into(d):
 #
 def check_for_and_install_GOSDK_on_remote(taggedDir):
     run("echo \"TODO(rwz): Install Go SDK\"");
-    dir=run("pwd").strip();
-    if not exists(dir+"/deploy/go"):
-        get_os_specific_GO_into(dir+"/deploy");
+    d=run("pwd").strip();
+    if not exists(d+"/go"):
+        get_os_specific_GO_into(d)
     
 
     
