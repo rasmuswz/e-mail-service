@@ -4,7 +4,7 @@ E Mail Service
 
 This is now work-in-progress.
 
-Want to get going Fast deploying GeoMail, [Click here](#deploy-testing-build-getting)
+Want to get going Fast deploying GeoMail, [Click here](#deploy-test-build-get)
 
 
 ![Dev logo](docs/images/devlogo.png) Concept and Design
@@ -36,5 +36,36 @@ System Design
 
 
 
-#Deploy, Testing, Build, Getting
+#Deploy, Test, Build, Get
 --------------------
+
+Well egaer to deploy this project and try it out? [Live Demo](https://mail.bitlab.dk).
+
+Want to do it your self, well we need to Get, Build and optionally run the tests first.
+
+Getting GeoMail
+----
+
+Easy just clone this repo.
+
+
+Building
+----
+This takes a few easy steps depending on which operating system you are using.
+
+TODO(rwz): Write this section
+
+Testing
+----
+TODO(rwz): Write this section
+
+
+Deploying
+-----
+
+Easy, this will update the production system at mail.bitlab.dk provided you have
+got the SSH-RSA private keys to access the servers.
+```
+fab deploy
+```
+TODO(rwz): Write this section.
