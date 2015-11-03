@@ -2,7 +2,7 @@
 E Mail Service
 ------------------------------------------------------------
 
-<div style="width:100%;>
+<div style="width:100%;">
 <center><img src="docs/images/geomail.png" alt="GeoMail" width="400px"/></center>
 </div>
 
