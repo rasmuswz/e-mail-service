@@ -39,7 +39,7 @@ def build_goworkspace(tag):
             with shell_env(GOPATH=os.path.realpath("goworkspace")):
                 local("go get github.com/mailgun/mailgun-go");
                 local("go install mail.bitlab.dk");
-                local("tar cvzf ../go.tgz --exclude .git ./src");
+                local("tar cmvzf ../go.tgz --exclude .git ./src");
             
     
 
@@ -51,7 +51,7 @@ def build_dartworkspace(tag):
         with lcd("dartworkspace"):
             local("pub get");
             local("pub build");
-            local("tar cvzf ../dart.tgz --exclude .git ./build");
+            local("tar cmvzf ../dart.tgz --exclude .git ./build");
 
 #
 # Make git-tag
