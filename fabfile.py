@@ -39,7 +39,7 @@ def build_goworkspace(tag):
             with shell_env(GOPATH=os.path.realpath("goworkspace")):
                 local("go get github.com/mailgun/mailgun-go");
                 local("go install mail.bitlab.dk");
-                local("tar cmvzf ../go.tgz --exclude .git ./src");
+                local("tar cmvzf ../go_"+tag+".tgz --exclude .git ./src");
             
     
 
@@ -51,7 +51,7 @@ def build_dartworkspace(tag):
         with lcd("dartworkspace"):
             local("pub get");
             local("pub build");
-            local("tar cmvzf ../dart.tgz --exclude .git ./build");
+            local("tar cmvzf ../dart_"+tag+".tgz --exclude .git ./build");
 
 #
 # Make git-tag
@@ -73,16 +73,18 @@ def make_and_return_name_of_tagged_directory(tag):
 # and unpacking them in {taggedDir}.
 #
 def transfer_and_unpack_tarballs(taggedDir,tag):
-    build_dartworkspace(tag)
-    build_goworkspace(tag)
-    if not exists(taggedDir+"/dart.tgz"):
-        put("dart.tgz",taggedDir);
-    if not exists(taggedDir+"/go.tgz"):
-        put("go.tgz",taggedDir);
+    dartTarBall="dart_"+tag+".tgz"
+    goTarBall="go_"+tag+".tgz"
+    if not exists(taggedDir+"/"+dartTarBall):
+        build_dartworkspace(tag)
+        put(dartTarBall,taggedDir);
+    if not exists(taggedDir+"/"+goTarBall):
+        build_goworkspace(tag)
+        put(goTarBall,taggedDir);
     run("mkdir -p "+taggedDir+"/dartworkspace");
     run("mkdir -p "+taggedDir+"/goworkspace");
-    run("tar xfz "+taggedDir+"/dart.tgz -C "+taggedDir+"/dartworkspace");
-    run("tar xfz "+taggedDir+"/go.tgz -C "+taggedDir+"/goworkspace");
+    run("tar xmfz "+taggedDir+"/"+dartTarBall+ " -C "+taggedDir+"/dartworkspace");
+    run("tar xmfz "+taggedDir+"/"+goTarBall+" -C "+taggedDir+"/goworkspace");
 
 #
 # Download GoSDK and unpack it properly on the remote server
@@ -122,7 +124,7 @@ def make_go_path(goWorkspaceDir):
 
 def buildGoWorkspace(goBinDir,goWorkspaceDir):
     with cd(goWorkspaceDir):
-        with shell_env(GOPATH=make_go_path(),
+        with shell_env(GOPATH=make_go_path(goWorkspaceDir),
                        GOROOT=goBinDir+"/.."):
             run("PATH=${PATH}:"+goBinDir+ " && go install mail.bitlab.dk");
     
