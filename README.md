@@ -2,6 +2,8 @@
 E Mail Service
 ------------------------------------------------------------
 
+![GeoMail Logo](docs/images/geomail.png "GeoMail")
+
 This is now work-in-progress.
 
 Want to get going Fast deploying GeoMail, [Click here](#deploy-test-build-get)
