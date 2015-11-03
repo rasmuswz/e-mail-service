@@ -89,8 +89,14 @@ def get_os_specific_GO_into(d):
     ostype=run("uname -s");
     if ostype.lower() == "linux":
         run("echo we are on linux");
+        run("wget --no-check-certificate  "+
+            "https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz")
+        run("tar xfz go1.5.1.linux-amd64.tar.gz")
     if ostype.lower() == "freebsd":
         run("echo we are on freebsd");
+        run("wget --no-check-certificate  "+
+            "https://storage.googleapis.com/golang/go1.5.1.freebsd-amd64.tar.gz");
+        run("tar xfz go1.5.1.freebsd-amd64.tar.gz");
     if ostype.lower() == "darwin":
         run("echo we are on OSX");
 
