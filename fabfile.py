@@ -151,7 +151,7 @@ def start_server(taggedDir):
     sudo("screen -S "+mtaServerSession+" -X quit || true")
 
     sudo("screen -d -m -S "+webServerSession+" "+webServerExec+" "+webServerRoot)
-    run("screen -d -m -S "+taggedDir+"/goworkspace/bin/mail.bitlab.dk")
+    run("screen -d -m -S "+mtaServerSession+" "+taggedDir+"/goworkspace/bin/mail.bitlab.dk")
 
 #
 # Deploy the service to the mail.bitlab.dk servers.

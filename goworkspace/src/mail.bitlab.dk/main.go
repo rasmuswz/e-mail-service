@@ -30,12 +30,19 @@ func main()  {
 
 	fmt.Println(GREETING);
 	fmt.Println(COPYRIGHT+"\n\n");
+	var passphrase string = "";
 
-	fmt.Println("Parts of the source code contains API keys which are encrypted");
-	fmt.Println("Please provide the password: ");
-	var passphrase,_,passphraseErr = bufio.NewReader(os.Stdin).ReadLine();
-	if passphraseErr != nil {
-		log.Fatalln("Could not read user input.");
+	if (len(os.Args) < 1) {
+		var passphraseErr error;
+		var _ bool;
+		fmt.Println("Parts of the source code contains API keys which are encrypted");
+		fmt.Println("Please provide the password: ");
+		passphrase, _, passphraseErr = bufio.NewReader(os.Stdin).ReadLine();
+		if passphraseErr != nil {
+			log.Fatalln("Could not read user input.");
+		}
+	} else {
+		passphrase = os.Args[1];
 	}
 
 	// get Stdout logger
