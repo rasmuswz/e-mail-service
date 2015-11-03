@@ -30,7 +30,7 @@ func main()  {
 
 	fmt.Println(GREETING);
 	fmt.Println(COPYRIGHT+"\n\n");
-	var passphrase string = "";
+	var passphrase []byte = nil;
 
 	if (len(os.Args) < 1) {
 		var passphraseErr error;
@@ -42,7 +42,7 @@ func main()  {
 			log.Fatalln("Could not read user input.");
 		}
 	} else {
-		passphrase = os.Args[1];
+		passphrase = []byte(os.Args[1]);
 	}
 
 	// get Stdout logger
