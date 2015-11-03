@@ -13,7 +13,7 @@
     <script language="JavaScript1.5">
         function showPosition(position) {
             var e = document.getElementById('geolist');
-            e.innerHTML="La:"+position.coords.latitude+",Lo:"+position.coords.longitude;
+            e.innerHTML="<b>Your Location:</b>La:"+position.coords.latitude+",Lo:"+position.coords.longitude + e.innerHTML;
         }
 
         function getLocation() {
@@ -33,7 +33,7 @@
 
 <div id="top-tool-bar" class="page-header jmbotron">
     <div class="panel-body">
-        <h1>BitLab GeoMail
+        <h1><img src="images/geomail.png" alt="BitLab GeoMail" width="20%"/>
             <small>| The local approach to e-mail</small>
         </h1>
     </div>
@@ -45,7 +45,7 @@
             <!-- MENU -->
             <div id="left-scrolling-mail-list" class="panel panel-default" style="min-height: 400px;overflow:auto;">
                 <div class="panel-body">
-                    <div class="dropdown" id="mail-box-selection">
+                    <div class="dropdown col-md-6" id="mail-box-selection">
                         <button class="btn btn-default dropdown-toggle"
                                 type="button" id="dropdownMenu1"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
@@ -54,11 +54,13 @@
                         </button>
 
                         <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
-                            <li><a href="#">Action</a></li>
-                            <li><a href="#">Another action</a></li>
-                            <li><a href="#">Something else here</a></li>
-                            <li><a href="#">Separated link</a></li>
+                            <li><a href="#">INBOX</a></li>
+                            <li><a href="#">Sent Email</a></li>
                         </ul>
+                    </div>
+
+                    <div class="btn btn-default dropdown-toggle col-md-6">
+                        Compose
                     </div>
                 </div>
 
@@ -89,7 +91,10 @@
         <div class="col-md-12">
             Geo lists
             <div class="well" id="geolist">
-
+                <br/><small>Click any list below to compose an e-mail</small>
+                <a href="#" class="list-group-item">
+                    <b>One Mail (9 Friends)</b>
+                </a>
             </div>
         </div>
     </div>

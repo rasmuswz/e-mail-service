@@ -21,73 +21,122 @@ import subprocess
 # uname -s
 # mkdir
 #
+# at least one hosts needs MySQL for the Storage component.
+#
 
 #
-# Prepare:
-# 
-# Download go dependencies 
+# Download Go Dependencies and go install mail.bitlab.dk
+# Finally if successful wrap the source up in go_tag.tgz.
 #
-def build_goworkspace():
-    with lcd("goworkspace"):
-        with shell_env(GOPATH=os.path.realpath("goworkspace")):
-            local("go get github.com/mailgun/mailgun-go");
-            local("go install mail.bitlab.dk");
-            local("tar cvzf ../go.tgz --exclude .git ./src");
-
+# param tag - the git hub tag
+#
+# Note! Go create platform specific binaries meaning that we need to
+# deploy the source and rebuild it on the production environment.
+#
+def build_goworkspace(tag):
+    if not exists("go_"+tag+".tgz"):
+        with lcd("goworkspace"):
+            with shell_env(GOPATH=os.path.realpath("goworkspace")):
+                local("go get github.com/mailgun/mailgun-go");
+                local("go install mail.bitlab.dk");
+                local("tar cvzf ../go.tgz --exclude .git ./src");
+            
     
 
 #
 # Get dependencies and build the dart client UI
 #
-def build_dartworkspace():
-    with lcd("dartworkspace"):
-        local("pub get");
-        local("pub build");
-        local("tar cvzf ../dart.tgz --exclude .git ./build");
+def build_dartworkspace(tag):
+    if not exists("dart_"+tag+".tgz"):
+        with lcd("dartworkspace"):
+            local("pub get");
+            local("pub build");
+            local("tar cvzf ../dart.tgz --exclude .git ./build");
 
 #
-# 
+# Make git-tag
+#
+def make_git_tag():
+    return local("git rev-parse --short HEAD", capture=True).strip();
+
+#
+# Acquire the git-tag locally and make a directory on the remote
+# server called mail.bitlab.dk_<git-tag>
+#
+def make_and_return_name_of_tagged_directory(tag):
+    taggedDir="mail.bitlab.dk_"+tag
+    run("mkdir -p "+taggedDir)
+    return taggedDir
+    
+#
+# Build (if necessary) and Send dart.tgz and go.tgz to the remote host
+# and unpacking them in {taggedDir}.
+#
+def transfer_and_unpack_tarballs(taggedDir,tag):
+    build_dartworkspace(tag)
+    build_goworkspace(tag)
+    if not exists(taggedDir+"/dart.tgz"):
+        put("dart.tgz",taggedDir);
+    if not exists(taggedDir+"/go.tgz"):
+        put("go.tgz",taggedDir);
+    run("mkdir -p "+taggedDir+"/dartworkspace");
+    run("mkdir -p "+taggedDir+"/goworkspace");
+    run("tar xfz "+taggedDir+"/dart.tgz -C "+taggedDir+"/dartworkspace");
+    run("tar xfz "+taggedDir+"/go.tgz -C "+taggedDir+"/goworkspace");
+
+#
+# Build GoWorkspace on remote host
+#
+# Note! Go create platform specific binaries meaning that we need to
+# deploy the source and rebuild it on the production environment.
+#
+def check_for_and_install_GOSDK_on_remote():
+    run("echo \"TODO(rwz): Install Go SDK\"");
+
+    
+
+#
+# Deploy the service to the mail.bitlab.dk servers.
 #
 @hosts(['ubuntu@mail1.bitlab.dk','rwz@mail0.bitlab.dk'])
 def deploy():
+    local("git pull");
+    local("git commit -am \"Deploying standby\"");
+    local("git pull");
     run("mkdir -p deploy");
     with cd("deploy"):
-        taggedDir="mail.bitlab.dk_"+local("git rev-parse --short HEAD", capture=True).strip();
-        run("mkdir -p "+taggedDir);
-        if not exists(taggedDir+"/dart.tgz"):
-            put("dart.tgz",taggedDir);
-        if not exists(taggedDir+"/go.tgz"):
-            put("go.tgz",taggedDir);
-        run("mkdir -p "+taggedDir+"/dartworkspace");
-        run("mkdir -p "+taggedDir+"/goworkspace");
-        run("tar xfz "+taggedDir+"/dart.tgz -C "+taggedDir+"/dartworkspace");
-        run("tar xfz "+taggedDir+"/go.tgz -C "+taggedDir+"/goworkspace");
         
+        tag = make_git_tag()
 
-            
-        basePath=run("pwd");
-        if not exists('go'):
-            ostype=run("uname -s");
-            if "linux" in ostype or "Linux" in ostype:
-                if not exists("go1.5.1.freebsd-amd64.tar.gz"):
-                    run("wget --no-check-certificate  "+
-                        "https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz");
-                run("tar xfz go1.5.1.linux-amd64.tar.gz");
-            if "FreeBSD" in ostype:
-                if not exists("go1.5.1.freebsd-amd64.tar.gz"):
-                    run("wget --no-check-certificate  "+
-                        "https://storage.googleapis.com/golang/go1.5.1.freebsd-amd64.tar.gz");
-                run("tar xfz go1.5.1.freebsd-amd64.tar.gz");
-            if "darwin" in ostype:
-                run("wget --no-check-certificate"+
-                    " https://storage.googleapis.com/golang/go1.5.1.darwin-amd64.tar.gz");
-                run("tar xfz go1.5.1.darwin-amd64.tar.gz");
-        with shell_env(PATH="${PATH}:"+basePath+"/go/bin",
-                       GOROOT=basePath+"/go",
-                       GOPATH=basePath+"/"+taggedDir+"/goworkspace"):
-            print("${PATH}:"+basePath+"/go/bin");
-            with cd(taggedDir+"/goworkspace"):
-                run("PATH=${PATH}:"+basePath+"/go/bin && go install mail.bitlab.dk");
+        taggedDir = make_and_return_name_of_tagged_directory(tag)
+
+        transfer_and_unpack_tarballs(taggedDir,tag)
+
+        check_for_and_install_GOSDK_on_remote()
+
+        # basePath=run("pwd");
+        # if not exists('go'):
+        #     ostype=run("uname -s");
+        #     if "linux" in ostype or "Linux" in ostype:
+        #         if not exists("go1.5.1.freebsd-amd64.tar.gz"):
+        #             run("wget --no-check-certificate  "+
+        #                 "https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz");
+        #         run("tar xfz go1.5.1.linux-amd64.tar.gz");
+        #     if "FreeBSD" in ostype:
+        #         if not exists("go1.5.1.freebsd-amd64.tar.gz"):
+        #             run("wget --no-check-certificate  "+
+        #                 "https://storage.googleapis.com/golang/go1.5.1.freebsd-amd64.tar.gz");
+        #         run("tar xfz go1.5.1.freebsd-amd64.tar.gz");
+        #     if "darwin" in ostype:
+        #         run("wget --no-check-certificate"+
+        #             " https://storage.googleapis.com/golang/go1.5.1.darwin-amd64.tar.gz");
+        #         run("tar xfz go1.5.1.darwin-amd64.tar.gz");
+        # with shell_env(PATH="${PATH}:"+basePath+"/go/bin",
+        #                GOROOT=basePath+"/go",
+        #                GOPATH=basePath+"/"+taggedDir+"/goworkspace"):
+        #     print("${PATH}:"+basePath+"/go/bin");
+        #     with cd(taggedDir+"/goworkspace"):
+        #         run("PATH=${PATH}:"+basePath+"/go/bin && go install mail.bitlab.dk");
                 
     
 
