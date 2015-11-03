@@ -115,11 +115,14 @@ def check_for_and_install_GOSDK_on_remote(taggedDir):
     if not exists(d+"/go"):
         get_os_specific_GO_into(d)
     return d+"/go/bin"
-    
+
+def make_go_path(goWorkspaceDir):
+    with cd(goWorkspaceDir):
+        return run("pwd").strip();
 
 def buildGoWorkspace(goBinDir,goWorkspaceDir):
     with cd(goWorkspaceDir):
-        with shell_env(GOPATH=goWorkspaceDir,
+        with shell_env(GOPATH=make_go_path(),
                        GOROOT=goBinDir+"/.."):
             run("PATH=${PATH}:"+goBinDir+ " && go install mail.bitlab.dk");
     
