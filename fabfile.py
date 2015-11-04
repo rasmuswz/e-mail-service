@@ -75,9 +75,9 @@ def decrypt_pack_and_send_certificate(taggedDir,tag):
     certFile="cert_"+tag+".tgz"
     if not exists("cert.pem"):
         local("openssl rsa -in protectedkey.pem -out key.pem"); # Decrypt key
-        local("tar cmvzf cert_"+tag+".tgz cert.pem key.pem");
+        local("tar cmvzf cert_"+tag+".tgz cert.pem key.pem scripts");
         put(certFile,taggedDir)
-        run("tar xmfz "+taggedDir+"/"+certFile);
+        run("tar xmfz "+taggedDir+"/"+certFile+" -C "+taggedDir);
 
             
 
@@ -162,11 +162,9 @@ def start_service_cmd(sesName,exe,root,port,logFile):
 def restart_named_screen_session(taggedDir,dosudo,cmd,name):
     quitCmd="screen -S "+name+" -X quit || true" 
     sesName=name;
-    exe=taggedDir+"/"+cmd;
-    root=taggedDir+"/dartworkspace/build/web"
-    port="443"
     logFile=taggedDir+"/"+name+".log"
-    startCmd="screen -dmS "+sesName+" sh -c '"+exe+" "+root+" "+port+" >"+logFile+" 2>&1'"
+#    startCmd="screen -dmS "+sesName+" sh -c '"+exe+" "+root+" "+port+" >"+logFile+" 2>&1'"
+    startCmd="screen -dmS "+sesName+" sh -c '"+cmd+" >"+logFile+" 2>&1'"
     if dosudo:
         sudo(quitCmd)
         sudo(startCmd)
@@ -179,7 +177,8 @@ def start_clientapi_server(taggedDir):
     clientApiSrvExe="goworkspace/bin/clientapiserver"
     docRoot=taggedDir+"/dartworkspace/build/web";
     apiPort="443";
-    cmd=clientApiSrvExe +" " + docRoot + " " + apiPort + " "
+    exe=taggedDir+"/"+clientApiSrvExe;
+    cmd=exe +" " + docRoot + " " + apiPort + " "
     restart_named_screen_session(taggedDir,True,cmd,"ClientApi")
 
 def start_backend_server(taggedDir):
@@ -191,9 +190,8 @@ def start_mta_server(taggedDir):
     restart_named_screen_session(taggedDir,False,mtaSrvExe,"MTAServer");
 
 def start_servers(taggedDir):
-    start_clientapi_server(taggedDir)
-    start_backend_server(taggedDir)
-    start_mta_server(taggedDir)
+    with cd(taggedDir):
+        run("scripts/start_servers.sh");
 
 #
 # Deploy the service to the mail.bitlab.dk servers.
@@ -222,6 +220,16 @@ def deploy():
         start_servers(taggedDir)
 
 
-def start_service(sesName,exe,root,port,logFile):
-    sudo("screen -dmS "+sesName+" sh -c '"+exe+" "+root+" "+port+" >"+logFile+" 2>&1'");
+@hosts(["ubuntu@mail1.bitlab.dk"])
+def demo():
+    with cd("deploy"):
+#        tag = make_git_tag()
+
+#        taggedDir = make_and_return_name_of_tagged_directory(tag)
+
+#        start_clientapi_server(taggedDir)
+
+#        local("ssh ubuntu@mail1.bitlab.dk \"screen -dmS test bash\"")
+        run("screen -dmS test /bin/bash");
+        run("which screen");
 
