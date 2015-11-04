@@ -202,6 +202,9 @@ main() {
   });
 
 
-  querySelector("#version").innerHtml = "You are watching Geo Mail version " + model.getVersion();
+  querySelector("#version").innerHtml =
+    "You are watching Geo Mail version <font color=\"red\">"+model.getVersion()+"</font>";
+
+
 
 }

@@ -11,10 +11,10 @@
 import 'dart:html';
 import 'dart:async';
 
-String GetQuery(String url) {
+String GetQuery(String path) {
 
   HttpRequest req = new HttpRequest();
-  req.open("GET","/login?username=",async: false);
+  req.open("GET",path,async: false);
   req.send();
 
   if (req.status== 200) {

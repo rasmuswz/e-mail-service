@@ -229,6 +229,8 @@ def deploy():
 
         start_servers(taggedDir)
 
+        print("Version "+tag+" has been deployed");
+
 
 @hosts(['ubuntu@mail1.bitlab.dk','rwz@mail0.bitlab.dk'])
 def demo():
