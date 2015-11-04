@@ -11,7 +11,7 @@ import (
 func BasicAuthorization(user string, passphrase string) string {
 	var res = "";
 	var toEncode = user+":"+passphrase;
-	res = " Basic "+base64.StdEncoding().EncodeToString([]byte(toEncode));
+	res = " Basic "+base64.StdEncoding.EncodeToString([]byte(toEncode));
 	return res;
 }
 

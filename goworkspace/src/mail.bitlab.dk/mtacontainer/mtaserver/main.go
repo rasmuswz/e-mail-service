@@ -1,12 +1,7 @@
 /**
  *
- * Main entry point for the e-mail service.
+ * Main entry point for the mta-container service.
  *
- * This program will spawn the full service stack:
- * - MTAContainer
- * - Backends
- * - JSon Store
- * - ClientAPI
  *
  * Author: Rasmus Winther Zakarias
  *
@@ -20,16 +15,15 @@ import (
 	"os"
 	"bufio"
 	"mail.bitlab.dk/mtacontainer/mailgun"
+	"mail.bitlab.dk/utilities"
 )
 
 
-const GREETING = "Uber Challenge - GeoMail by Bitlab - The localized e-mail"
-const COPYRIGHT= "All rights are reserved (C) Rasmus Winter Zakarias"
 
 func main()  {
 
-	fmt.Println(GREETING);
-	fmt.Println(COPYRIGHT+"\n\n");
+	utilities.PrintGreeting(os.Stdout);
+
 	var passphrase []byte = nil;
 
 	if (len(os.Args) < 2) {

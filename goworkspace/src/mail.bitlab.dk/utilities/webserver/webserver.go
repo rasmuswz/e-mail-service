@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"strconv"
 )
 
 type WebServer struct {
@@ -76,14 +77,22 @@ func (s *WebServer) viewHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-	if (len(os.Args) != 2) {
-		println("webserver <doc root path>");
+	if (len(os.Args) != 3) {
+		println("webserver <doc root path> <service port>");
 		os.Exit(-1);
+	}
+
+
+
+	_,portErr := strconv.ParseInt(os.Args[2],0,64);
+	if portErr != nil {
+		println("[Webserver Error] Parsed port turns out it is not an int.");
+		os.Exit(-2);
 	}
 
 	println("Serving from: "+os.Args[1]);
 	http.HandleFunc("/", NewServer(os.Args[1]).viewHandler);
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":"+os.Args[2], nil)
 	if (err != nil){
 		println("[Webserver Error]: "+err.Error());
 		os.Exit(-1);

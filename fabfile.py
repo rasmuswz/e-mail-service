@@ -126,32 +126,48 @@ def buildGoWorkspace(goBinDir,goWorkspaceDir):
     with cd(goWorkspaceDir):
         with shell_env(GOPATH=goPath,
                        GOROOT=goBinDir+"/.."):
-            run("PATH=${PATH}:"+goBinDir+ " && go install mail.bitlab.dk");
-            run("PATH=${PATH}:"+goBinDir+ " && go install mail.bitlab.dk/utilities/webserver");
+            buildCmdPrefix="PATH=${PATH}:"+goBinDir+ " && go install mail.bitlab.dk/";
+            run(buildCmdPrefix+"backend/backendserver");
+            run(buildCmdPrefix+"clientapi/clientapiserver");
+            run(buildCmdPrefix+"mtacontainer/mtaserver");
+
 
 def make_go_path(goWorkspaceDir):
     with cd(goWorkspaceDir):
         return run("pwd").strip();
-
-    
 
 def sync_with_git():
     local("git pull");
     local("git commit -am \"Deploying standby\" || true ");
     local("git pull");
 
+def restart_named_screen_session(taggedDir,sudo,cmd,name):
+    quitCmd="screen -S "+name+" -X quit || true" 
+    startCmd="screen -dmS "+name+" sh -c '{"+taggedDir+"/"+cmd+" 2>&1 >"+taggedDir+"/"+name+".log }'";
+    if sudo:
+        sudo(quitCmd)
+        sudo(startCmd)
+    else:
+        run(quitCmd)
+        run(startCmd)
 
-def start_server(taggedDir):
-    webServerExec=taggedDir+"/goworkspace/bin/webserver"
-    webServerRoot=taggedDir+"/dartworkspace/build/web"
-    webServerSession="webserver"
-    mtaServerSession="mtaserver"
 
-    sudo("screen -S "+webServerSession+" -X quit || true")
-    run("screen -S "+mtaServerSession+" -X quit || true")
+def start_clientapi_server(taggedDir):
+    clientApiSrvExe="goworkspace/bin/clientapiserver"
+    restart_named_screen_session(taggedDir,True,clientApiExe,"ClientApi")
 
-    sudo("screen -d -m -S "+webServerSession+" "+webServerExec+" "+webServerRoot)
-    run("screen -d -m -S "+mtaServerSession+" "+taggedDir+"/goworkspace/bin/mail.bitlab.dk")
+def start_backend_server(taggedDir):
+    backendSrvExe="goworkspace/bin/backendserver"
+    restart_named_screen_session(taggedDir,True,backendSrvExe,"Backend");
+
+def start_mta_server(taggedDir):
+    mtaSrvExe="goworkspace/bin/mtaserver"
+    restart_named_screen_session(taggedDir,True,mtaSrcExe,"MTA Server");
+
+def start_servers(taggedDir):
+    start_clientapi_server(taggedDir)
+    start_backend_server(taggedDir)
+    start_mta_server(taggedDir)
 
 #
 # Deploy the service to the mail.bitlab.dk servers.
