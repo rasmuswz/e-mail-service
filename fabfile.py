@@ -189,7 +189,7 @@ def deploy():
 
         absGoBinDir = check_for_and_install_GOSDK_on_remote(taggedDir)
 
-        buildGoWorkspace(absGoBinDir,taggedDir+"/goworkspace")
+        build_remote_goworkspace(absGoBinDir,taggedDir+"/goworkspace")
         
         start_server(taggedDir)
 
