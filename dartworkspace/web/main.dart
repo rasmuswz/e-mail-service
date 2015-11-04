@@ -200,4 +200,8 @@ main() {
       signOut.signOut();
     }
   });
+
+
+  querySelector("#version").innerHtml = "You are watching Geo Mail version "+model.getVersion();
+
 }

@@ -140,5 +140,9 @@ class GeoMailDataModel {
     mails[2].setContent("Flot site du har her !.");
     return mails;
   }
+
+  String getVersion() {
+    return GetQuery("/version.txt");
+  }
 }
 

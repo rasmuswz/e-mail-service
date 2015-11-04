@@ -193,6 +193,12 @@ def start_servers(taggedDir):
     with cd(taggedDir):
         run("scripts/start_servers.sh");
 
+def write_tag_in_file(filename,tag, destination):
+    f = open(filename,"w");
+    f.write(tag);
+    f.close();
+    put(filename,destination);
+
 #
 # Deploy the service to the mail.bitlab.dk servers.
 #
@@ -217,19 +223,19 @@ def deploy():
         
         decrypt_pack_and_send_certificate(taggedDir,tag)
 
+        write_tag_in_file("dartworkspace/build/web/version.txt", tag, taggedDir+"/dartworkspace/build/web/version.txt");
+
         start_servers(taggedDir)
 
 
-@hosts(["ubuntu@mail1.bitlab.dk"])
+@hosts(['ubuntu@mail1.bitlab.dk','rwz@mail0.bitlab.dk'])
 def demo():
+
     with cd("deploy"):
-#        tag = make_git_tag()
 
-#        taggedDir = make_and_return_name_of_tagged_directory(tag)
+        tag = make_git_tag();
 
-#        start_clientapi_server(taggedDir)
+        taggedDir = make_and_return_name_of_tagged_directory(tag);
 
-#        local("ssh ubuntu@mail1.bitlab.dk \"screen -dmS test bash\"")
-        run("screen -dmS test /bin/bash");
-        run("which screen");
+        write_tag_in_file("dartworkspace/build/web/version.txt", tag, taggedDir+"/dartworkspace/build/web");
 
