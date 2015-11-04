@@ -50,7 +50,7 @@ def build_remote_goworkspace(goBinDir,goWorkspaceDir):
     with cd(goWorkspaceDir):
         with shell_env(GOPATH=goPath,
                        GOROOT=goBinDir+"/.."):
-            setGoPathPrefix=PATH="${PATH}:"+goBinDir+" ";
+            setGoPathPrefix=PATH="${PATH}:"+goBinDir+" && ";
             run(setGoPathPrefix+buildCmdPrefix+"backend/backendserver");
             run(setGoPathPrefix+buildCmdPrefix+"clientapi/clientapiserver");
             run(setGoPathPrefix+buildCmdPrefix+"mtacontainer/mtaserver");
@@ -191,5 +191,5 @@ def deploy():
 
         build_remote_goworkspace(absGoBinDir,taggedDir+"/goworkspace")
         
-        start_server(taggedDir)
+        start_servers(taggedDir)
 
