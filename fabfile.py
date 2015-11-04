@@ -141,10 +141,10 @@ def sync_with_git():
     local("git commit -am \"Deploying standby\" || true ");
     local("git pull");
 
-def restart_named_screen_session(taggedDir,sudo,cmd,name):
+def restart_named_screen_session(taggedDir,dosudo,cmd,name):
     quitCmd="screen -S "+name+" -X quit || true" 
     startCmd="screen -dmS "+name+" sh -c '{"+taggedDir+"/"+cmd+" 2>&1 >"+taggedDir+"/"+name+".log }'";
-    if sudo:
+    if dosudo:
         sudo(quitCmd)
         sudo(startCmd)
     else:
