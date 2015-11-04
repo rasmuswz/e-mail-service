@@ -34,14 +34,27 @@ import subprocess
 # Note! Go create platform specific binaries meaning that we need to
 # deploy the source and rebuild it on the production environment.
 #
+buildCmdPrefix="go install mail.bitlab.dk/";
 def build_goworkspace(tag):
     if not exists("go_"+tag+".tgz"):
         with lcd("goworkspace"):
             with shell_env(GOPATH=os.path.realpath("goworkspace")):
                 local("go get github.com/mailgun/mailgun-go");
-                local("go install mail.bitlab.dk");
+                local(buildCmdPrefix+"backend/backendserver");
+                local(buildCmdPrefix+"clientapi/clientapiserver");
+                local(buildCmdPrefix+"mtacontainer/mtaserver");
                 local("tar cmvzf ../go_"+tag+".tgz --exclude .git ./src");
             
+def build_remote_goworkspace(goBinDir,goWorkspaceDir):
+    goPath=make_go_path(goWorkspaceDir)
+    with cd(goWorkspaceDir):
+        with shell_env(GOPATH=goPath,
+                       GOROOT=goBinDir+"/.."):
+            setGoPathPrefix=PATH="${PATH}:"+goBinDir+" ";
+            run(setGoPathPrefix+buildCmdPrefix+"backend/backendserver");
+            run(setGoPathPrefix+buildCmdPrefix+"clientapi/clientapiserver");
+            run(setGoPathPrefix+buildCmdPrefix+"mtacontainer/mtaserver");
+
     
 
 #
@@ -117,19 +130,6 @@ def check_for_and_install_GOSDK_on_remote(taggedDir):
     if not exists(d+"/go"):
         get_os_specific_GO_into(d)
     return d+"/go/bin"
-
-#
-#
-#
-def buildGoWorkspace(goBinDir,goWorkspaceDir):
-    goPath=make_go_path(goWorkspaceDir)
-    with cd(goWorkspaceDir):
-        with shell_env(GOPATH=goPath,
-                       GOROOT=goBinDir+"/.."):
-            buildCmdPrefix="PATH=${PATH}:"+goBinDir+ " && go install mail.bitlab.dk/";
-            run(buildCmdPrefix+"backend/backendserver");
-            run(buildCmdPrefix+"clientapi/clientapiserver");
-            run(buildCmdPrefix+"mtacontainer/mtaserver");
 
 
 def make_go_path(goWorkspaceDir):
