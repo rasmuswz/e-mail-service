@@ -157,7 +157,7 @@ def sync_with_git():
 
 def restart_named_screen_session(taggedDir,dosudo,cmd,name):
     quitCmd="screen -S "+name+" -X quit || true" 
-    startCmd="screen -dmS "+name+" sh -c '{"+taggedDir+"/"+cmd+" 2>&1 >"+taggedDir+"/"+name+".log }'";
+    startCmd="screen -dmS "+name+" sh -c '"+taggedDir+"/"+cmd+" 2>&1 >"+taggedDir+"/"+name+".log'";
     if dosudo:
         sudo(quitCmd)
         sudo(startCmd)
@@ -168,10 +168,10 @@ def restart_named_screen_session(taggedDir,dosudo,cmd,name):
 
 def start_clientapi_server(taggedDir):
     clientApiSrvExe="goworkspace/bin/clientapiserver"
-    docRoot=taggedDir+"/build/web";
+    docRoot=taggedDir+"dartworkspace/build/web";
     apiPort="80";
-    
-    restart_named_screen_session(taggedDir,True,clientApiSrvExe,"ClientApi")
+    cmd=clientApiSrvExe +" " + docRoot + " " + apiPort + " "
+    restart_named_screen_session(taggedDir,True,cmd,"ClientApi")
 
 def start_backend_server(taggedDir):
     backendSrvExe="goworkspace/bin/backendserver"
