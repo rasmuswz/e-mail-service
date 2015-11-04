@@ -154,7 +154,7 @@ def restart_named_screen_session(taggedDir,sudo,cmd,name):
 
 def start_clientapi_server(taggedDir):
     clientApiSrvExe="goworkspace/bin/clientapiserver"
-    restart_named_screen_session(taggedDir,True,clientApiServExe,"ClientApi")
+    restart_named_screen_session(taggedDir,True,clientApiSrvExe,"ClientApi")
 
 def start_backend_server(taggedDir):
     backendSrvExe="goworkspace/bin/backendserver"
