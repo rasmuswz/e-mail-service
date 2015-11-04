@@ -4,7 +4,6 @@
     <exclude-output />
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/build" />
-      <excludeFolder url="file://$MODULE_DIR$/packages/bitlab_email_client" />
       <excludeFolder url="file://$MODULE_DIR$/web/images/packages" />
       <excludeFolder url="file://$MODULE_DIR$/web/js/packages" />
       <excludeFolder url="file://$MODULE_DIR$/web/packages" />
