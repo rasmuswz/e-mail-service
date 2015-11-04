@@ -169,7 +169,7 @@ def restart_named_screen_session(taggedDir,dosudo,cmd,name):
 def start_clientapi_server(taggedDir):
     clientApiSrvExe="goworkspace/bin/clientapiserver"
     docRoot=taggedDir+"/dartworkspace/build/web";
-    apiPort="80";
+    apiPort="443";
     cmd=clientApiSrvExe +" " + docRoot + " " + apiPort + " "
     restart_named_screen_session(taggedDir,True,cmd,"ClientApi")
 
