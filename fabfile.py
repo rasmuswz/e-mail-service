@@ -158,11 +158,11 @@ def start_clientapi_server(taggedDir):
 
 def start_backend_server(taggedDir):
     backendSrvExe="goworkspace/bin/backendserver"
-    restart_named_screen_session(taggedDir,True,backendSrvExe,"Backend");
+    restart_named_screen_session(taggedDir,False,backendSrvExe,"Backend");
 
 def start_mta_server(taggedDir):
     mtaSrvExe="goworkspace/bin/mtaserver"
-    restart_named_screen_session(taggedDir,True,mtaSrvExe,"MTA Server");
+    restart_named_screen_session(taggedDir,False,mtaSrvExe,"MTAServer");
 
 def start_servers(taggedDir):
     start_clientapi_server(taggedDir)
