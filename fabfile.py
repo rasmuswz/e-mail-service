@@ -162,7 +162,7 @@ def start_backend_server(taggedDir):
 
 def start_mta_server(taggedDir):
     mtaSrvExe="goworkspace/bin/mtaserver"
-    restart_named_screen_session(taggedDir,True,mtaSrcExe,"MTA Server");
+    restart_named_screen_session(taggedDir,True,mtaSrvExe,"MTA Server");
 
 def start_servers(taggedDir):
     start_clientapi_server(taggedDir)
