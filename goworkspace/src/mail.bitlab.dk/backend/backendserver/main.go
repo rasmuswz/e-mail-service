@@ -11,7 +11,7 @@ import (
 
 func main() {
 
-	var i_am = utilities.PrintGreeting(os.Stdout);
+	utilities.PrintGreeting(os.Stdout);
 
 	var store = backend.NewMemoryStore();
 	var receiver = backend.NewReceiveBackend(store);
@@ -28,7 +28,7 @@ func main() {
 			return;
 		}
 
-		if (input == "q") {
+		if (string(input) == "q") {
 			receiver.Stop();
 			sender.Stop();
 			return;
