@@ -68,6 +68,20 @@ def build_dartworkspace(tag):
             local("tar cmvzf ../dart_"+tag+".tgz --exclude .git ./build");
 
 #
+# Deploy self signed certificate for mail.bitlab.dk 
+# with its private key.
+#
+def decrypt_pack_and_send_certificate(taggedDir,tag):
+    certFile="cert_"+tag+".tgz"
+    if not exists("cert.pem"):
+        local("openssl rsa -in protectedkey.pem -out key.pem"); # Decrypt key
+        local("tar cmvzf cert_"+tag+".tgz cert.pem key.pem");
+        put(certFile,taggedDir)
+        run("tar xmfz "+taggedDir+"/"+certFile);
+
+            
+
+#
 # Make git-tag
 #
 def make_git_tag():
@@ -154,6 +168,9 @@ def restart_named_screen_session(taggedDir,dosudo,cmd,name):
 
 def start_clientapi_server(taggedDir):
     clientApiSrvExe="goworkspace/bin/clientapiserver"
+    docRoot=taggedDir+"/build/web";
+    apiPort="80";
+    
     restart_named_screen_session(taggedDir,True,clientApiSrvExe,"ClientApi")
 
 def start_backend_server(taggedDir):
@@ -191,5 +208,7 @@ def deploy():
 
         build_remote_goworkspace(absGoBinDir,taggedDir+"/goworkspace")
         
+        decrypt_pack_and_send_certificate(taggedDir,tag)
+
         start_servers(taggedDir)
 
