@@ -142,7 +142,11 @@ class GeoMailDataModel {
   }
 
   String getVersion() {
-    return GetQuery("/version.txt");
+    String verstr = GetQuery("version.txt");
+    if (verstr == null) {
+      return " no version ";
+    }
+    return verstr;
   }
 }
 
