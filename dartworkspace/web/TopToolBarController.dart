@@ -8,7 +8,7 @@ import 'dart:html';
 
 /**
  * +=============================+
- * | MailBoxes        BitLabMail |
+ * | MailBoxes        Compose    |
  * +=============================+
  *
  * Controls the "top-tool-bar" div on the page.

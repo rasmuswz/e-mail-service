@@ -28,6 +28,8 @@ func NewServer(docRoot string) *WebServer {
 }
 
 func (s *WebServer) viewHandler(w http.ResponseWriter, r *http.Request) {
+	var extMap map[string]string = map[string]string{"html": "text/html", "css": "text/css","dart": "application/dart"};
+
 	var path = r.URL.Path;
 	if ("" == path || "/" == path) {
 		path = "/index.html";
@@ -35,20 +37,41 @@ func (s *WebServer) viewHandler(w http.ResponseWriter, r *http.Request) {
 
 
 	filename := s.docRoot+path;
+	var fi, erro = os.Stat(filename);
 
-
-	println("Serving file: "+filename)
-	p, e := loadFile(filename)
-	if (e != nil) {
-		println("[Error] "+e.Error());
+	if (erro != nil) {
+		println("[Error] "+erro.Error());
 		return;
 	}
 
-	if (strings.Contains(path,".css")) {
-		w.Header().Add("Content-Type","text/css");
+	if (fi.IsDir() == false) {
+
+		println("Serving file: "+filename)
+		p, e := loadFile(filename)
+		if (e != nil) {
+			println("[Error] "+e.Error());
+			return;
+		}
+
+		var mimeType = "text/plain";
+		if strings.Contains(filename,".") {
+			var ext = filename[strings.LastIndex(filename, ".") + 1:len(filename)];
+			var v,ok = extMap[ext];
+			if  ok {
+				mimeType = v;
+			}
+		}
+
+		w.Header().Add("Content-Type",mimeType);
+
+		w.Write(p);
+
+	} else {
+		w.Write([]byte("Directory listings not supported."))
 	}
 
-	w.Write(p);
+
+
 }
 
 func main() {
@@ -60,5 +83,5 @@ func main() {
 
 	println("Serving from: "+os.Args[1]);
 	http.HandleFunc("/", NewServer(os.Args[1]).viewHandler);
-	http.ListenAndServe(":80", nil)
+	http.ListenAndServe(":8080", nil)
 }

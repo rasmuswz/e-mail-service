@@ -32,7 +32,7 @@ func main()  {
 	fmt.Println(COPYRIGHT+"\n\n");
 	var passphrase []byte = nil;
 
-	if (len(os.Args) < 1) {
+	if (len(os.Args) < 2) {
 		var passphraseErr error;
 		var _ bool;
 		fmt.Println("Parts of the source code contains API keys which are encrypted");
