@@ -3,9 +3,6 @@
 //
 //
 //
-//
-//
-//
 package mailgunprovider
 import (
 	"mail.bitlab.dk/model"
@@ -25,6 +22,7 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 	"hash"
+	"mail.bitlab.dk/utilities"
 )
 
 const (
@@ -214,7 +212,7 @@ func (mgp *MailGunProvider) receivingRoutine() {
 	mux.Handle("/unsubscribe", mgp.checkAndAddHook("unsubscribe", mgp.logHandler));
 	mux.Handle("/click", mgp.checkAndAddHook("click", mgp.logHandler));
 	mux.Handle("/open", mgp.checkAndAddHook("open", mgp.logHandler));
-	err := http.ListenAndServeTLS(":31415", "cert.pem", "key.pem", mux);
+	err := http.ListenAndServeTLS(utilities.MTA_MAILGUN_SERVICE_PORT, "cert.pem", "key.pem", mux);
 
 	if (err != nil) {
 		d, e := os.Getwd();
@@ -291,7 +289,7 @@ func (mgp *MailGunProvider) checkRoute() bool {
 	}
 	if (routeFound == false) {
 		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN,
-			errors.New("forward(\"https://mail.bitlab.dk:31415/msg\") route not found"));
+			errors.New("forward(\"https://mail.bitlab.dk:"+utilities.MTA_MAILGUN_SERVICE_PORT+"msg\") route not found"));
 		return false;
 	}
 
@@ -313,7 +311,7 @@ func (mgp *MailGunProvider) checkAndAddHook(hook string, fn serveFn) http.Handle
 	}
 
 	if (hooks[hook] == "") {
-		err = mgp.mg.CreateWebhook(hook, "https://mail.bitlab.dk:31415/" + hook);
+		err = mgp.mg.CreateWebhook(hook, "https://mail.bitlab.dk"+utilities.MTA_MAILGUN_SERVICE_PORT+"/" + hook);
 		if (err != nil) {
 			mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN, err);
 			// TODO(rwz): Consider whether this is the proper action.

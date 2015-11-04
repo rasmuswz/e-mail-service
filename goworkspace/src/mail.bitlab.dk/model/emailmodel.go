@@ -17,12 +17,20 @@ type Email interface {
 	GetContent() string;
 }
 
+type EmailFromJSon struct {
+	Headers map[string]string;
+	Content string;
+}
+
 const (
 	EML_HDR_FROM = "From";
 	EML_HDR_TO = "To";
 	EML_HDR_SUBJECT = "Subject";
 	EML_HDR_CONTENT_TYPE = "Content-Type";
 	EML_HDR_CONTENT_LENGTH = "Content-Length";
+	// ---------------------------------------
+	MBOX_NAME_INBOX = "INBOX";
+	MBOX_NAME_SENT = "Sent";
 )
 
 type EmailImpl struct {
@@ -53,5 +61,13 @@ func NewEmail(content string, headers ... string) Email {
 		var val = headers[i + 1];
 		result.header[key] = val;
 	}
+	return result;
+}
+
+
+func NewEmailFromJSon(mail *EmailFromJSon) Email {
+	var result = new(EmailImpl);
+	result.content = mail.Content;
+	result.header = mail.Headers;
 	return result;
 }

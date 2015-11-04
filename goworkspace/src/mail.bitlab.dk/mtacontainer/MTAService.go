@@ -11,6 +11,10 @@ package mtacontainer
 import (
 	"mail.bitlab.dk/model"
 	"time"
+	"net/http"
+	"mail.bitlab.dk/utilities"
+	"log"
+	"encoding/json"
 )
 
 type EventKind uint32;
@@ -226,6 +230,30 @@ func CreateMTAContainer(scheduler Scheduler) MTAContainer {
 	return result;
 }
 
+func (ths *DefaultMTAContainer) receiveMailToBeSentFromSendBackEnd(w http.ResponseWriter, r *http.Request) {
+
+	var mail model.EmailFromJSon = model.EmailFromJSon{};
+	var jDec = json.NewDecoder(r.Body);
+	jDec.Decode(&mail);
+
+	var email = model.NewEmailFromJSon(&mail);
+
+
+	ths.GetOutgoing() <- email;
+
+}
+
+func (ths *DefaultMTAContainer) ListForSendBackEnd() {
+
+	var mux = http.NewServeMux();
+	mux.HandleFunc("/sendmail",ths.receiveMailToBeSentFromSendBackEnd);
+
+	err := http.ListenAndServe(utilities.MTA_LISTENS_FOR_SEND_BACKEND,mux);
+	if err != nil {
+		log.Fatalln("Could not listen for Send Back End: "+err.Error());
+	}
+
+}
 
 // ------------------------------------------------------
 //
