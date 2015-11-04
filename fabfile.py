@@ -73,7 +73,7 @@ def build_dartworkspace(tag):
 #
 def decrypt_pack_and_send_certificate(taggedDir,tag):
     certFile="cert_"+tag+".tgz"
-    if not exists("cert.pem"):
+    if not exists(taggedDir+"cert.pem"):
         local("openssl rsa -in protectedkey.pem -out key.pem"); # Decrypt key
         local("tar cmvzf cert_"+tag+".tgz cert.pem key.pem scripts");
         put(certFile,taggedDir)
