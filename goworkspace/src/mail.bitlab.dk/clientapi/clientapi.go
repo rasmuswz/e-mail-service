@@ -15,7 +15,7 @@ type ClientAPI struct {
 	docRoot string
 	mtacontainer.HealthService;
 	events chan mtacontainer.Event;
-	port uint16;
+	port int;
 }
 
 
@@ -33,6 +33,7 @@ func NewServer(docRoot string, port int) *ClientAPI {
 	var result = new(ClientAPI);
 	result.docRoot = docRoot;
 	result.events = make(chan mtacontainer.Event);
+	result.port = port;
 	go result.serve();
 	return result;
 }
@@ -40,10 +41,13 @@ func NewServer(docRoot string, port int) *ClientAPI {
 func (a *ClientAPI) serve() {
 
 	var mux = http.NewServeMux();
-
 	mux.HandleFunc("/api.go",a.clientApiHandler);
 	mux.HandleFunc("/",a.viewHandler);
-	err := http.ListenAndServeTLS(":"+strconv.Itoa(int(a.port)),"cert.pem","key.pem,",mux);
+
+	var addr = ":"+strconv.Itoa(a.port);
+	a.events <- mtacontainer.NewEvent(mtacontainer.EK_OK,error.Error("Serving on port: "+addr));
+
+	err := http.ListenAndServeTLS(addr,"cert.pem","key.pem",mux);
 
 	if (err != nil){
 		log.Fatalln("[ClientApi, Error] "+err.Error());
