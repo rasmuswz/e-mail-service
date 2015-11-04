@@ -197,7 +197,8 @@ def write_tag_in_file(filename,tag, destination):
     f = open(filename,"w");
     f.write(tag);
     f.close();
-    put(filename,destination);
+    if (destination != None):
+        put(filename,destination);
 
 #
 # Deploy the service to the mail.bitlab.dk servers.
@@ -224,6 +225,7 @@ def deploy():
         decrypt_pack_and_send_certificate(taggedDir,tag)
 
         write_tag_in_file("dartworkspace/build/web/version.txt", tag, taggedDir+"/dartworkspace/build/web/version.txt");
+        write_tag_in_file("dartworkspace/web/version.txt",tag,None);
 
         start_servers(taggedDir)
 
