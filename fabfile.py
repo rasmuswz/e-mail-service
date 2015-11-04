@@ -148,7 +148,7 @@ def start_server(taggedDir):
     mtaServerSession="mtaserver"
 
     sudo("screen -S "+webServerSession+" -X quit || true")
-    sudo("screen -S "+mtaServerSession+" -X quit || true")
+    run("screen -S "+mtaServerSession+" -X quit || true")
 
     sudo("screen -d -m -S "+webServerSession+" "+webServerExec+" "+webServerRoot)
     run("screen -d -m -S "+mtaServerSession+" "+taggedDir+"/goworkspace/bin/mail.bitlab.dk")
