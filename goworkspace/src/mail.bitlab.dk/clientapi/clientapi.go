@@ -57,6 +57,12 @@ func (a *ClientAPI) serve() {
 
 func (a *ClientAPI) clientApiHandler(w http.ResponseWriter, r *http.Request) {
 
+	var path string = r.URL.Path;
+
+	if path[strings.LastIndex(path,"/")+1:len(path)] == "alive" {
+		w.Write([]byte("yes"));
+	}
+
 }
 
 func loadFile(filename string) ([]byte, error) {
