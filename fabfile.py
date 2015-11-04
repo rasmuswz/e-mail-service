@@ -155,9 +155,18 @@ def sync_with_git():
     local("git commit -am \"Deploying standby\" || true ");
     local("git push");
 
+def start_service_cmd(sesName,exe,root,port,logFile):
+    return "screen -dmS "+sesName+" sh -c '"+exe+" "+root+" "+port+" >"+logFile+" 2>&1'";
+
+
 def restart_named_screen_session(taggedDir,dosudo,cmd,name):
     quitCmd="screen -S "+name+" -X quit || true" 
-    startCmd="screen -dmS "+name+" sh -c '"+taggedDir+"/"+cmd+" 2>&1 >"+taggedDir+"/"+name+".log'";
+    sesName=name;
+    exe=taggedDir+"/"+cmd;
+    root=taggedDir+"/dartworkspace/build/web"
+    port="443"
+    logFile=taggedDir+"/"+name+".log"
+    startCmd="screen -dmS "+sesName+" sh -c '"+exe+" "+root+" "+port+" >"+logFile+" 2>&1'"
     if dosudo:
         sudo(quitCmd)
         sudo(startCmd)
@@ -211,4 +220,8 @@ def deploy():
         decrypt_pack_and_send_certificate(taggedDir,tag)
 
         start_servers(taggedDir)
+
+
+def start_service(sesName,exe,root,port,logFile):
+    sudo("screen -dmS "+sesName+" sh -c '"+exe+" "+root+" "+port+" >"+logFile+" 2>&1'");
 
