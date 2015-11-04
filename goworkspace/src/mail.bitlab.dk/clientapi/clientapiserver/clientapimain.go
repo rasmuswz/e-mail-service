@@ -45,7 +45,8 @@ func main() {
 
 	var clientApi = clientapi.NewServer(root,int(port));
 	var events = clientApi.GetEvent();
-	println(i_am+" Client API serving "+root+" at :"+strconv.Itoa(int(port))+" from directory "+os.Getwd());
+	var curDir,_ = os.Getwd();
+	println(i_am+" Client API serving "+root+" at :"+strconv.Itoa(int(port))+" from directory "+curDir);
 
 	//
 	// The ClientApi server implements the {Health} interface.
