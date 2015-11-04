@@ -117,6 +117,10 @@ class MailWindowController {
       });
     });
   }
+
+  void hideWindow() {
+    view.style.display = 'none';
+  }
 }
 
 
@@ -152,13 +156,36 @@ class LoginWindowController {
   void hideWindow() {
     view.style.display = 'none';
   }
+}
 
+class SignOutController {
+
+  ButtonElement view;
+  MailWindowController mailView;
+  GeoMailDataModel model;
+  LoginWindowController loginView;
+
+  SignOutController(this.model,this.mailView,this.loginView) {
+    view = querySelector("#logout");
+    view.onClick.listen( (e) {
+      this.signOut();
+    });
+  }
+
+  void signOut() {
+    mailView.hideWindow();
+    loginView.displayWindow();
+    model.logout();
+
+  }
 
 }
 
 main() {
 
-  GeoMailDataModel model = new GeoMailDataModel();
+  GeoMailConnection conn = new GeoMailConnection("/go.api");
+
+  GeoMailDataModel model = new GeoMailDataModel(conn);
 
   MailWindowController mailWindow = new MailWindowController(model);
   LoginWindowController loginWindow = new LoginWindowController(model, mailWindow);
@@ -166,4 +193,11 @@ main() {
   MailBoxSelectController mboxController = new MailBoxSelectController();
   mboxController.setOptions(["inbox", "sent", "drafts", "play"]);
 
+  SignOutController signOut = new SignOutController(model,mailWindow,loginWindow);
+
+  model.ListenForConnectionState().then( (status) {
+    if (status == "down") {
+      signOut.signOut();
+    }
+  });
 }

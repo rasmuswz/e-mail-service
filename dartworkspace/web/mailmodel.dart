@@ -9,41 +9,65 @@
  * Author: Rasmus Winter Zakarias
  */
 import 'dart:html';
+import 'dart:async';
+
 String GetQuery(String url) {
 
   HttpRequest req = new HttpRequest();
   req.open("GET","/login?username=",async: false);
   req.send();
 
+  if (req.status== 200) {
+    return req.responseText;
+  } else {
+    return null;
+  }
+
 }
 
 /**
  * Represent an open connection to the Server implementing the Client API component.
- *
- *
- *
  */
 class GeoMailConnection {
 
-  String token;
+  String _path;
+  Timer _watchDog;
+  bool _alive;
+  bool _previousAlive;
+  List<Completer<String>> stateListeners;
+
 
   GeoMailConnection(String path) {
+    this._path = path;
+    _previousAlive = false;
+    this._watchDog = new Timer.periodic(new Duration(seconds: 2),check);
 
   }
 
-
-  bool login(String username, String password){
-    HttpRequest loginRequest = new HttpRequest();
-    //loginRequest.open("GET","/go.login",async: false,user: username, password: password);
-
-    return true;
-//    if (loginRequest.status == 200) {
-//      return true;
-//    } else {
-//      return false;
-//    }
-
+  void setAlive(bool v) {
+    this._alive = v;
   }
+
+  Future<String> ListenForState() {
+    Completer<String> c = new Completer<String>();
+    return c.future;
+  }
+
+  void check(Timer t) {
+    String resp = GetQuery(_path+"/alive");
+    _alive = resp != null;
+    if (!_alive) {
+      print("Geo Mail Connection is down...");
+    }
+
+    if (_alive != _previousAlive) {
+      stateListeners.forEach( (completer) {
+          completer.complete(_alive ? "going up" : "down");
+      });
+    }
+  }
+
+  get Alive => _alive;
 
 }
 
@@ -79,14 +103,31 @@ class Email {
 
 class GeoMailDataModel {
 
-  GeoMailDataModel() {
+  String basicAuth;
+  GeoMailConnection connection;
+  List<Future<String>> stateListeners;
 
+  GeoMailDataModel(GeoMailConnection connection) {
+    this.connection = connection;
+    this.stateListeners = [];
+  }
+
+  void logout() {
+    this.basicAuth = null;
+  }
+
+  Future<String> ListenForConnectionState() {
+    return this.connection.ListenForState();
   }
 
   // LogIn to the api
   bool login(String username, String password)  {
+    this.basicAuth = window.btoa(username+":"+password);
     return true;
   }
+
+
+  get IsLoggedIn => basicAuth != null;
 
 
   List<Email> loadEmailList(int offset, int count) {
