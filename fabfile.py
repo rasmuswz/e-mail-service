@@ -153,7 +153,7 @@ def make_go_path(goWorkspaceDir):
 def sync_with_git():
     local("git pull");
     local("git commit -am \"Deploying standby\" || true ");
-    local("git pull");
+    local("git push");
 
 def restart_named_screen_session(taggedDir,dosudo,cmd,name):
     quitCmd="screen -S "+name+" -X quit || true" 
