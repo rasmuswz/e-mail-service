@@ -9,6 +9,7 @@ import (
 	"mail.bitlab.dk/mtacontainer"
 	"strconv"
 	"log"
+	"errors"
 )
 
 type ClientAPI struct {
@@ -45,7 +46,7 @@ func (a *ClientAPI) serve() {
 	mux.HandleFunc("/",a.viewHandler);
 
 	var addr = ":"+strconv.Itoa(a.port);
-	a.events <- mtacontainer.NewEvent(mtacontainer.EK_OK,error.Error("Serving on port: "+addr));
+	a.events <- mtacontainer.NewEvent(mtacontainer.EK_OK,errors.New("Serving on port: "+addr));
 
 	err := http.ListenAndServeTLS(addr,"cert.pem","key.pem",mux);
 
