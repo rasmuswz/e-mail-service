@@ -45,6 +45,7 @@ func (a *ClientAPI) serve() {
 	mux.HandleFunc("/api.go",a.clientApiHandler);
 	mux.HandleFunc("/",a.viewHandler);
 
+
 	var addr = ":"+strconv.Itoa(a.port);
 	a.events <- mtacontainer.NewEvent(mtacontainer.EK_OK,errors.New("Serving on port: "+addr));
 

@@ -26,8 +26,10 @@ import subprocess
 #
 
 #
-# Download Go Dependencies and go install mail.bitlab.dk
-# Finally if successful wrap the source up in go_tag.tgz.
+# Download Go Dependencies and go install our three services
+# BackEnd, MTA and ClientApi.
+#
+# if successful wrap the source up in a tarball ready for deployment.
 #
 # param tag - the git hub tag
 #
@@ -40,6 +42,8 @@ def build_goworkspace(tag):
         with lcd("goworkspace"):
             with shell_env(GOPATH=os.path.realpath("goworkspace")):
                 local("go get github.com/mailgun/mailgun-go");
+                local("go get github.com/aws/aws-sdk-go/service/ses");
+                local("go get github.com/sendgrid/sendgrid-go");
                 local(buildCmdPrefix+"backend/backendserver");
                 local(buildCmdPrefix+"clientapi/clientapiserver");
                 local(buildCmdPrefix+"mtacontainer/mtaserver");

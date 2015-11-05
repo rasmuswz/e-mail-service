@@ -5,6 +5,7 @@ import (
 	"mail.bitlab.dk/backend"
 	"bufio"
 	"log"
+	"strings"
 )
 
 
@@ -28,10 +29,13 @@ func main() {
 			return;
 		}
 
-		if (string(input) == "q") {
+		if (strings.Compare("q",string(input)) == 0) {
+
 			receiver.Stop();
 			sender.Stop();
 			return;
 		}
+
+		println("Executing command \""+string(input) +"\"");
 	}
 }

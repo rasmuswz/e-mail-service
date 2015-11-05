@@ -80,6 +80,7 @@ func NewSendBackend(store JSonStore) *SendBackEnd{
 	var result *SendBackEnd = new (SendBackEnd);
 	result.store = store;
 	result.outgoing = make(chan model.Email);
+	result.cmd = make(chan int);
 	go result.ListenForClientApiSendingMails();
 	go result.ForwardToMtaContainer();
 	return result;
