@@ -4,6 +4,7 @@ import (
 	"io"
 	"fmt"
 	"strings"
+	"log"
 )
 
 
@@ -19,4 +20,21 @@ func PrintGreeting(s io.Writer) string {
 	fmt.Fprintln(s,GREETING);
 	fmt.Fprintln(s,COPYRIGHT+" - "+i_am+" going up.");
 	return i_am;
+}
+
+func GetLogger(componentName string, targets ...io.Writer) *log.Logger{
+
+	if (len(targets) > 1) {
+		println("GetLogger, multiple targets not supported, yet.");
+
+		// we could create an aggregate logger that takes several
+		// Writers and posts message to all of them.
+	}
+
+	if (len(targets) == 0) {
+		targets = append(targets,os.Stdout);
+	}
+
+	return 	log.New(targets[0] ,"["+componentName+"]",log.Lshortfile | log.Ltime | log.Ldate);
+
 }

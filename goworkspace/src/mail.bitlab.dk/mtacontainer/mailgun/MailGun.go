@@ -16,33 +16,25 @@ import (
 	"mail.bitlab.dk/mtacontainer"
 	"os"
 	"strings"
-	"crypto/aes"
-	"encoding/base64"
-	"crypto/sha256"
-	"crypto/cipher"
-	"encoding/hex"
-	"hash"
+
 	"mail.bitlab.dk/utilities"
+	"mail.bitlab.dk/utilities/go"
 )
 
 const (
-// The domain what we serve mails for
-	MG_SRV_DMN = "mail.bitlab.dk";
-// REST service access point
-	MG_API_URL = "https://api.mailgun.net/v3/" + MG_SRV_DMN + "/";
-// Encrypted API key, key gotten from MG-account using log-in at
-// https://mailgun.com/sessions/new. Now we can safely commit and push this
-// to GitHub.
-	MG_API_ENC_KEY = "UO7jcR8J+s17B8DXJN7bbkS3MreTHJVtUjZcTr352zerwSm2AAAAAAAAAAAAAAAA";
-// E-mail to notify when service state changes e.g. when it goes up and down
-	MG_RPT_EML = "r@wz.gl"; // Send health information about this provider to this address
-// Route Action that account MailGun shall have
-	MG_RUT_ACT = "forward(\"https://mail.bitlab.dk:31415/msg\")";
-
-	MG_CNF_KEY = "apikeykey";
+	// The map[string]string MG configuration has the following defined keys
+	MG_CNF_PASSPHRASE = "apikeykey";
+	MG_CNF_ENCRYPTED_APIKEY = "encapikey";
+	// stiputales the length of the plaintext key.
+	MG_CNF_ENCRYPTED_APIKEY_LEN = "apikeylen";
+	MG_CNF_ROUTE_ACTION_ON_INCOMING_MAIL = "routeaction";
+	MG_CONF_HEALTH_NOTIFY_EMAIL = "notifymail";
+	MG_CNF_DOMAIN_TO_SERVE = "domain";
 )
 
-
+func (ths *MailGunProvider) createMGApiUrl(domain_to_serve string ) string{
+	return "https://api.mailgun.net/v3/" + domain_to_serve + "/";
+}
 
 // ---------------------------------------------------------------
 // MailGunProvider implementation
@@ -69,6 +61,8 @@ type MailGunProvider struct {
 	health chan mtacontainer.Event;
 	config map[string]string;
 }
+
+
 
 // Commands to control this service
 type Cmd uint32;
@@ -107,6 +101,9 @@ func (m *MailGunProvider) GetName() string {
 
 func (m *MailGunProvider) Stop() {
 	m.cmd <- CMD_TERMINATE;
+
+	m.sendMaintanenceMessage("Admin,\nPlease find the MailGun MTA provider is going **down**.");
+
 	// wait for both receiving routine and sending routine to Stop.
 	var c = <-m.cmd;
 	if (c != CMD_RECV_HAS_TERMINATED && c != CMD_SEND_HAS_TERMINATED) {
@@ -166,7 +163,7 @@ func (mgp *MailGunProvider) mgSend(m model.Email) {
 	// report MailGunProvider as down
 	if err != nil {
 		mgp.log.Println(err.Error())
-		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN, err);
+		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
 	} else {
 		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_BEAT,
 			errors.New("MailGun says: " + mm + " for sending message giving it id " + mailId));
@@ -178,7 +175,7 @@ func (mgp *MailGunProvider) mgSend(m model.Email) {
 // Receiving E-mails and Health information (WebHooks)
 // ---------------------------------------------------------------
 
-const MG_SERVE_AT_MSG = "MailGun server at " + MG_API_URL;
+
 
 //
 // MailGun provides Routes to notify external service of incoming mails.
@@ -219,7 +216,7 @@ func (mgp *MailGunProvider) receivingRoutine() {
 		if (e == nil) {
 			mgp.log.Println("We are looking for: " + d + "/cert.pem "); }
 		mgp.log.Println("Error: " + err.Error());
-		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN, err);
+		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
 	}
 
 	mgp.log.Println("MailGun provider online.");
@@ -265,22 +262,23 @@ func (mgp *MailGunProvider) checkRoute() bool {
 	// Report problems invoking MailGun as service is DOWN, EK_DOWN.
 	//
 	if err != nil {
-		mgp.log.Println("Error: " + MG_SERVE_AT_MSG + " failed reporting routes:\n" + err.Error() + "\n" +
+		mgp.log.Println("Error: service failed in reporting routes:\n" + err.Error() + "\n" +
 		"Terminating receiving routine.");
-		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN, err);
+		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
 		return false;
 	}
 
 	//
 	// Also the service is down if the route is not found
 	//
-	mgp.log.Println(MG_SERVE_AT_MSG + " reports " + strconv.Itoa(routesOnServer) + " available");
+	mgp.log.Println(mgp.createMGApiUrl(mgp.config[MG_CNF_DOMAIN_TO_SERVE]) +
+	  " reports " + strconv.Itoa(routesOnServer) + " available");
 	routeFound := false;
 	for r := range routes {
 		route := routes[r];
 		for a := range route.Actions {
 			action := route.Actions[a];
-			if (strings.Compare(action, MG_RUT_ACT) == 0) {
+			if (strings.Compare(action, mgp.config[MG_CNF_ROUTE_ACTION_ON_INCOMING_MAIL]) == 0) {
 				routeFound = true;
 				mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_OK,
 					errors.New("Everything is fine, we found the route."));
@@ -288,7 +286,7 @@ func (mgp *MailGunProvider) checkRoute() bool {
 		}
 	}
 	if (routeFound == false) {
-		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN,
+		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY,
 			errors.New("forward(\"https://mail.bitlab.dk:"+utilities.MTA_MAILGUN_SERVICE_PORT+"msg\") route not found"));
 		return false;
 	}
@@ -306,14 +304,14 @@ func (mgp *MailGunProvider) checkAndAddHook(hook string, fn serveFn) http.Handle
 	hooks, err := mgp.mg.GetWebhooks();
 
 	if (err != nil) {
-		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN, err);
+		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
 		return nil;
 	}
 
 	if (hooks[hook] == "") {
 		err = mgp.mg.CreateWebhook(hook, "https://mail.bitlab.dk"+utilities.MTA_MAILGUN_SERVICE_PORT+"/" + hook);
 		if (err != nil) {
-			mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN, err);
+			mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
 			// TODO(rwz): Consider whether this is the proper action.
 		}
 	}
@@ -370,73 +368,25 @@ func newMgIncomingHandler(mgp *MailGunProvider) http.Handler {
 func (mgp *MailGunProvider) sendMaintanenceMessage(msg string) {
 	var goingUpMessage = model.NewEmail(msg,
 		model.EML_HDR_FROM, "mailgun@mail.bitlab.dk",
-		model.EML_HDR_TO, "r@wz.gl",
+		model.EML_HDR_TO, mgp.config[MG_CONF_HEALTH_NOTIFY_EMAIL],
 		model.EML_HDR_SUBJECT, "[MailGun] Provider starting up");
 	mgp.out <- goingUpMessage;
 }
 
-func computeAesKey(passphrase string) []byte {
-	var randomOracle hash.Hash = sha256.New();
-	randomOracle.Write([]byte(passphrase));
-	println("[keygen] passphrase as bytes:\n" + hex.Dump([]byte(passphrase)));
-	var hashedPassword = randomOracle.Sum(nil);
-	var rawKey = hashedPassword[:16];
 
-	return rawKey;
-}
-
-func encryptApiKey(apiKey string, passphrase string) string {
-
-	var plaintext = []byte(apiKey);
-	var aesKey = computeAesKey(passphrase);
-
-	var aesBlockCipher, aesBlockCipherErr = aes.NewCipher(aesKey);
-	if (aesBlockCipherErr != nil) {
-		return "";
-	}
-
-	var iv = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-	var aesBlockCipherCounterMode = cipher.NewCTR(aesBlockCipher, iv);
-
-	var cipherText = make([]byte, ((len(plaintext) / 16 + 1) * 16));
-	aesBlockCipherCounterMode.XORKeyStream(cipherText, plaintext);
-
-	return base64.StdEncoding.EncodeToString(cipherText);
-}
-
-//
-// From MailGun DashBoard we see that the secret api key is 36 Ascii-characters
-//
-func decryptApiKey(config map[string]string, encryptedKeyB64 string) string {
-	const apiKeyLen = 36;
-
-	var cipherText, cipherTextErr = base64.StdEncoding.DecodeString(encryptedKeyB64);
-	if cipherTextErr != nil {
-		return "";
-	}
-
-	var aesKey = computeAesKey(config[MG_CNF_KEY]);
-	var aesBlockCipher, aesBlockCipherErr = aes.NewCipher(aesKey);
-	if (aesBlockCipherErr != nil) {
-		return "";
-	}
-
-	var iv = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-	var aesBlockCipherCounterMode = cipher.NewCTR(aesBlockCipher, iv);
-
-	var plaintext = make([]byte, len(cipherText));
-	aesBlockCipherCounterMode.XORKeyStream(plaintext, cipherText);
-
-	return string(plaintext[:apiKeyLen]);
-}
 
 // Construct a Mail Gun Provider
-func NewMailGun(log *log.Logger, config map[string]string) mtacontainer.MTAProvider {
-	var result *MailGunProvider = new(MailGunProvider);
-	var apiKey = decryptApiKey(config, MG_API_ENC_KEY);
 
+
+func n(log *log.Logger, config map[string]string) mtacontainer.MTAProvider {
+	var result *MailGunProvider = new(MailGunProvider);
+
+
+	// -- initialize the result --
 	result.config = config;
-	result.mg = mailgun.NewMailgun("mail.bitlab.dk", apiKey, "");
+	var apiKey = utilities.DecryptApiKey(config[MG_CNF_PASSPHRASE], config[MG_CNF_ENCRYPTED_APIKEY],
+		goh.StrToInt(MG_CNF_ENCRYPTED_APIKEY_LEN));
+	result.mg = mailgun.NewMailgun(config[MG_CNF_DOMAIN_TO_SERVE], apiKey, "");
 	result.log = log;
 
 	// setup channels
@@ -450,7 +400,11 @@ func NewMailGun(log *log.Logger, config map[string]string) mtacontainer.MTAProvi
 	go result.receivingRoutine();
 
 	// send initial "MG is in the Air"-message to Admin
-	//result.sendMaintanenceMessage("Admin,\nPlease find the MailGun MTA provider up.");
+	result.sendMaintanenceMessage("Admin,\nPlease find the MailGun MTA provider is up.");
 
 	return result;
+}
+
+func New(log *log.Logger, config map[string]string) mtacontainer.MTAProvider {
+	return n(log,config);
 }

@@ -9,71 +9,155 @@
 package main
 
 import (
-	"fmt"
+
 	"mail.bitlab.dk/mtacontainer"
-	"log"
 	"os"
 	"bufio"
-	"mail.bitlab.dk/mtacontainer/mailgun"
 	"mail.bitlab.dk/utilities"
+	"mail.bitlab.dk/model"
+	"log"
+	"net/http"
+	"encoding/json"
 )
 
 
 
-func main()  {
+func handleErrorFromMtaContainer(log *log.Logger,
+								 container mtacontainer.MTAContainer,
+								 scheduler mtacontainer.Scheduler) {
+	for {
+		var e, ok = <-container.GetEvent();
 
-	utilities.PrintGreeting(os.Stdout);
-
-	var passphrase []byte = nil;
-
-	if (len(os.Args) < 2) {
-		var passphraseErr error;
-		var _ bool;
-		fmt.Println("Parts of the source code contains API keys which are encrypted");
-		fmt.Println("Please provide the password: ");
-		passphrase, _, passphraseErr = bufio.NewReader(os.Stdin).ReadLine();
-		if passphraseErr != nil {
-			log.Fatalln("Could not read user input.");
+		if (!ok) {
+			return;
 		}
-	} else {
-		passphrase = []byte(os.Args[1]);
+
+		//
+		// Container requests e-mail to be submitted else where.
+		//
+		if e.GetKind() > mtacontainer.EK_RESUBMIT {
+			var resubmitMail, ok = e.GetPayload().(model.Email); // syntax for typeof
+			// we here as if payload is an model.Email object.
+			if ok {
+				container.GetOutgoing() <- resubmitMail;
+			}
+		}
+
+		//
+		// Container Died
+		//
+		if e.GetKind() == mtacontainer.EK_FATAL {
+			var provider, ok = e.GetPayload().(mtacontainer.MTAProvider);
+			if ok {
+				log.Println("Provider \"" + provider.GetName() + " is permanently down and now decommissioned.");
+				if scheduler.RemoveProviderFromService(provider) < 1 {
+					container.Stop();
+					log.Println("We have no services able of performing any server, please visit configuration ");
+				}
+			}
+			log.Println("Something fatal happened to something not an MTAProvider :-(");
+		}
+
+
+		log.Println(e.GetError().Error());
 	}
 
-	// get Stdout logger
-	log := log.New(os.Stdout,"[Log]",log.Lshortfile | log.Ltime | log.Ldate);
-	log.Print("Initial logger created, hi Log ");
+}
 
+func forwardIncomingMailToReceiver(container mtacontainer.MTAContainer) {
 
-
-	// fire up the MTA container
-	var mailGunConfig = make(map[string]string);
-	mailGunConfig[mailgunprovider.MG_CNF_KEY] = string(passphrase);
-
-	mp  := mailgunprovider.NewMailGun(log, mailGunConfig);
-	providers := make([]mtacontainer.MTAProvider,1);
-	providers[0] = mp;
-	container := mtacontainer.CreateMTAContainer(mtacontainer.NewRoundRobinScheduler(providers));
-
-	go func() {
-		for {
-			var e,ok = <-container.GetEvent();
-
-			if (!ok) {
-				return;
-			}
-
-			log.Println(e.GetError().Error());
+	for {
+		select {
+		case receivedMail := <-container.GetIncoming():
+			forwardToReceiver(receivedMail);
 		}
-	}();
+	}
+}
 
+func listenForSendBackEnd(container mtacontainer.MTAContainer) {
+
+	var mux = http.NewServeMux();
+	mux.HandleFunc("/sendmail", func(w http.ResponseWriter, r *http.Request) {
+		var jDec = json.NewDecoder(r.Body);
+		var jemail = model.EmailFromJSon{}
+		err := jDec.Decode(&jemail);
+		if err != nil {
+			println("Server Failed to deserialise stream: "+err.Error());
+		} else {
+			container.GetOutgoing() <- model.NewEmailFromJSon(&jemail);
+		}
+		r.Body.Close();
+	});
+
+	http.ListenAndServe(utilities.MTA_LISTENS_FOR_SEND_BACKEND,mux);
+
+}
+
+func promptUserToShutDownService() {
+	println("MTAServer running type \"q\"<enter> to stop it.");
 	in := bufio.NewReader(os.Stdin);
 	input := "";
 	for input != "q" {
-		i,_,err := in.ReadLine();
+		i, _, err := in.ReadLine();
 		if err != nil {
 			panic(err);
 		}
 		input = string(i);
 	}
-	return ;
+}
+
+
+func configurationError(reason string) {
+
+	println("CONFIGURATION ERROR");
+	println("The System cannot continue for the following reason: ");
+	println(reason);
+	println("Please fix this problem and re-execute "+os.Args[0]);
+
+	os.Exit(-1);
+
+}
+
+func main() {
+
+	//
+	// say hello
+	//
+	utilities.PrintGreeting(os.Stdout);
+
+
+	//
+	// Initialize logger for stdout for this mtaserver.
+	//
+	log := utilities.GetLogger("mtaserver");
+	log.Print("Initial logger created, hi Log ");
+
+
+	//
+	// Start Container (ask for passphrase if necessary)
+	//
+	// var container,scheduler = GetProductionMTAContainer();
+	var container,scheduler = GetLoopBackContainer();
+
+	//
+	// Error handling
+	//
+	go handleErrorFromMtaContainer(log,container,scheduler);
+
+	//
+	// Forward incoming e-mail to Receiver Back-End
+	//
+	go forwardIncomingMailToReceiver(container);
+
+	//
+	// Listen for outgoing e-mail from Send-End end
+	//
+	go listenForSendBackEnd(container);
+
+
+	//
+	// Take control for terminal
+	//
+	promptUserToShutDownService();
+	return;
 }

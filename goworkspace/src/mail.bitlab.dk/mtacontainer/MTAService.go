@@ -19,16 +19,76 @@ import (
 
 type EventKind uint32;
 const (
-	// no problem
+// no problem
 	EK_OK = 0x00;
-	// reporting entity is out of service
-	EK_DOWN = 0x01;
-	// reporting entity suffered a time out
-	// but we haven't given up yet will try again
+// reporting entity is out of service but we will try again
+// and hopefully recover.
+	EK_DOWN_TEMPORARILY = 0x01;
+// reporting entity suffered a time out
+// but we haven't given up yet will try again
 	EK_TIMEOUT = 0x02;
-	// reporting entity beats (it is up and well)
+// reporting entity beats (it is up and well)
 	EK_BEAT = 0x03;
+// When the Error message holds a warning
+// maintainers should know about
+	EK_WARNING = 0x04;
+// When the Error message holds a serious warning
+// that may be cause interrupt service.
+	EK_CRITICAL = 0x05;
+// When an Error occurs severe enough that the reporting entity
+// is considered unavailable and we have no means for recovering
+// from this.
+	EK_FATAL = 0x06;
+// We failed, and Payload needs to be submitted else where.
+	EK_RESUBMIT = 0x07
 )
+
+// ------------------------------------------------------------------
+//
+// Failure Strategy
+//
+// Intended use is that a service experiencing a (non fatal) failure
+// will invoke its FailureStrategy telling it whether it should wait
+// and try later or die-hard.
+// ------------------------------------------------------------------
+type FailureStrategy interface {
+	// returns true if patience has run out
+	// false if no action should be taken.
+	Failure(f EventKind) bool
+	Success();
+}
+
+// ------------------------------------------------------------
+//
+// A Threshold Failure Strategy
+//
+// More than {threshold} consecutive failures and we die-hard.
+//
+// ------------------------------------------------------------
+type ThresholdFailureStrategy struct {
+	noSevereConsecutiveFailures int;
+	threshold int;
+}
+
+func (ths * ThresholdFailureStrategy) Failure(f EventKind) bool {
+	if (f > EK_WARNING) {
+		ths.noSevereConsecutiveFailures += 1;
+	}
+
+	return ths.noSevereConsecutiveFailures > ths.threshold;
+}
+
+
+func (ths * ThresholdFailureStrategy) Success() {
+	ths.noSevereConsecutiveFailures = 0;
+}
+
+func NewThressHoldFailureStrategy(thresshold int) FailureStrategy{
+	result := new(ThresholdFailureStrategy);
+	result.noSevereConsecutiveFailures = 0;
+	result.threshold = thresshold;
+	return result;
+}
 
 /**
  * Events from {HealthService} tells some kind of event happened with the
@@ -40,6 +100,7 @@ type Event interface {
 	GetKind() EventKind;
 	GetError() error;
 	GetTime() time.Time;
+	GetPayload() interface{};
 }
 
 /**
@@ -56,8 +117,9 @@ type HealthService interface {
 
 type defaultEvent struct {
 	time time.Time;
-	err error;
+	err  error;
 	kind EventKind;
+	payload interface{};
 }
 
 func (de *defaultEvent) GetKind() EventKind {
@@ -72,11 +134,18 @@ func (de * defaultEvent) GetTime() time.Time {
 	return de.time;
 }
 
-func NewEvent(kind EventKind,e error) Event {
+func (de * defaultEvent) GetPayload() interface{} {
+	return de.payload;
+}
+
+func NewEvent(kind EventKind, e error, sender ...interface{}) Event {
 	var r *defaultEvent = new(defaultEvent);
 	r.kind = kind;
 	r.err = e;
 	r.time = time.Now();
+	if (len(sender) > 0) {
+		r.payload = sender[0];
+	}
 	return r;
 }
 
@@ -113,6 +182,7 @@ type MTAProvider interface {
 type Scheduler interface {
 	schedule() MTAProvider;
 	getProviders() []MTAProvider;
+	RemoveProviderFromService(provider MTAProvider) int;
 }
 
 
@@ -148,9 +218,9 @@ type MTAContainer interface {
 type DefaultMTAContainer struct {
 	providers []MTAProvider;
 	scheduler Scheduler;
-	incoming chan model.Email;
-	outgoing chan model.Email;
-	events chan Event;
+	incoming  chan model.Email;
+	outgoing  chan model.Email;
+	events    chan Event;
 }
 
 
@@ -183,10 +253,9 @@ func (d *DefaultMTAContainer) Stop() {
 }
 
 //
-// Public constructor for creating an MTAContainer.
+// Public constructor for creating a DefaultMTAContainer.
 //
-//
-func CreateMTAContainer(scheduler Scheduler) MTAContainer {
+func New(scheduler Scheduler) MTAContainer {
 	if (scheduler == nil) {
 		return nil;
 	}
@@ -195,7 +264,7 @@ func CreateMTAContainer(scheduler Scheduler) MTAContainer {
 	result.providers = scheduler.getProviders();
 	result.incoming = make(chan model.Email);
 	result.outgoing = make(chan model.Email);
-	result.events   = make(chan Event);
+	result.events = make(chan Event);
 	result.scheduler = scheduler;
 
 	// Aggregate all provider incoming and event channels to those of the MTAContainer
@@ -246,11 +315,11 @@ func (ths *DefaultMTAContainer) receiveMailToBeSentFromSendBackEnd(w http.Respon
 func (ths *DefaultMTAContainer) ListForSendBackEnd() {
 
 	var mux = http.NewServeMux();
-	mux.HandleFunc("/sendmail",ths.receiveMailToBeSentFromSendBackEnd);
+	mux.HandleFunc("/sendmail", ths.receiveMailToBeSentFromSendBackEnd);
 
-	err := http.ListenAndServe(utilities.MTA_LISTENS_FOR_SEND_BACKEND,mux);
+	err := http.ListenAndServe(utilities.MTA_LISTENS_FOR_SEND_BACKEND, mux);
 	if err != nil {
-		log.Fatalln("Could not listen for Send Back End: "+err.Error());
+		log.Fatalln("Could not listen for Send Back End: " + err.Error());
 	}
 
 }
@@ -261,7 +330,7 @@ func (ths *DefaultMTAContainer) ListForSendBackEnd() {
 //
 // ------------------------------------------------------
 type RoundRobinScheduler struct {
-	current int;
+	current   int;
 	providers []MTAProvider;
 }
 
@@ -273,6 +342,34 @@ func (rrs *RoundRobinScheduler) schedule() MTAProvider {
 	var result = rrs.providers[rrs.current];
 	rrs.current = (rrs.current % len(rrs.providers));
 	return result;
+}
+
+//
+// If the given provider {mta} is Scheduled by this scheduler
+// then remove it from the list of service providers.
+//
+func (rrs *RoundRobinScheduler) RemoveProviderFromService(mta MTAProvider) int {
+	var found bool = false;
+	for k := range rrs.providers {
+		if mta == rrs.providers[k] {
+			found = true;
+		}
+	}
+
+	if found {
+		var i int = 0;
+		var newProviders = make([]MTAProvider, len(rrs.providers) - 1);
+		for k := range rrs.providers {
+			if rrs.providers[k] != mta {
+				newProviders[i] = rrs.providers[k];
+				i = i + 1;
+			}
+		}
+		rrs.current = rrs.current % len(newProviders);
+		rrs.providers = newProviders;
+	}
+
+	return len(rrs.providers);
 }
 
 func NewRoundRobinScheduler(providers []MTAProvider) Scheduler {

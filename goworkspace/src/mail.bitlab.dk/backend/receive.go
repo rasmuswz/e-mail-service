@@ -99,8 +99,6 @@ func (ths *ReceiveBackEnd) serviceClientApi(w http.ResponseWriter, r *http.Reque
 		return;
 	}
 
-
-
 	var jDec = json.NewDecoder(r.Body);
 	var ask GetMailRequest = GetMailRequest{};
 
@@ -150,12 +148,13 @@ func (ths *ReceiveBackEnd) ListenForMtaContainer() {
 func (ths *ReceiveBackEnd) receiveMail(w http.ResponseWriter, r *http.Request) {
 	ths.events <- mtacontainer.NewEvent(mtacontainer.EK_OK, errors.New("Incoming e-mail from Mta"));
 	var jDecoder = json.NewDecoder(r.Body);
-	var email model.Email;
-	var emailErr = jDecoder.Decode(&email);
+	var jemail model.EmailFromJSon;
+	var jemailErr = jDecoder.Decode(&jemail);
 
-	if (emailErr != nil) {
-		ths.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN, emailErr);
+	if (jemailErr != nil) {
+		ths.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, jemailErr);
 	} else {
+		var email = model.NewEmailFromJSon(jemail);
 		ths.incoming <- email;
 	}
 }
@@ -164,14 +163,18 @@ func (ths *ReceiveBackEnd) StoreMailsInStore() {
 	for {
 		select {
 		case mail := <-ths.incoming:
-			var s JSonStore;
-			var blob = make(map[string]string);
-			blob["content"] = mail.GetContent();
-			blob["mbox"] = model.MBOX_NAME_INBOX;
-			for k, v := range mail.GetHeaders() {
-				blob[k] = v;
+			var mailHeaders = mail.GetHeaders();
+			var users = ths.store.GetJSonBlob(map[string]string{"email": mailHeaders[model.EML_HDR_TO]});
+			for i := range users {
+				var blob = make(map[string]string);
+				blob["content"] = mail.GetContent();
+				blob["mbox"] = model.MBOX_NAME_INBOX;
+				blob["username"] = users[i]["username"];
+				for k, v := range mail.GetHeaders() {
+					blob[k] = v;
+				}
+				ths.store.PutJSonBlob(blob);
 			}
-			s.PutJSonBlob(blob);
 		case cmd := <-ths.cmd:
 			if (cmd == CMD_SHUTDOWN) {
 				return;

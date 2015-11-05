@@ -62,6 +62,7 @@ func (a *ClientAPI) clientApiHandler(w http.ResponseWriter, r *http.Request) {
 
 	if path[strings.LastIndex(path,"/")+1:len(path)] == "alive" {
 		w.Write([]byte("yes"));
+		r.Body.Close();
 	}
 
 }
