@@ -13,7 +13,7 @@ This is now work-in-progress.
 [Click here](#deploy-test-build-get)
 
 
-![Dev logo](docs/images/devlogo.png) Concept and Design
+<img alt="Dev logo" src="docs/images/devlogo.png" width="150px"/> Concept and Design
 --------------
 
 The concept intended for this project is GeoMail, the
