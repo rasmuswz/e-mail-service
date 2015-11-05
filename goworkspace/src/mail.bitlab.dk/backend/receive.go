@@ -154,7 +154,7 @@ func (ths *ReceiveBackEnd) receiveMail(w http.ResponseWriter, r *http.Request) {
 	if (jemailErr != nil) {
 		ths.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, jemailErr);
 	} else {
-		var email = model.NewEmailFromJSon(jemail);
+		var email = model.NewEmailFromJSon(&jemail);
 		ths.incoming <- email;
 	}
 }
