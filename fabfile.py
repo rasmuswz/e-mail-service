@@ -21,6 +21,8 @@ import subprocess
 # uname -s
 # mkdir
 # screen
+# kill
+# pgrep
 #
 # at least one hosts needs MySQL for the Storage component.
 #
@@ -38,9 +40,16 @@ import subprocess
 #
 buildCmdPrefix="go install mail.bitlab.dk/";
 def build_goworkspace(tag):
+    path=os.environ["PATH"];
+    path=path+":"+os.path.realpath("thirdparty/go/bin")
+    path=path+":"+os.path.realpath("thirdparty/dart-sdk/bin");
+
+
     if not exists("go_"+tag+".tgz"):
         with lcd("goworkspace"):
-            with shell_env(GOPATH=os.path.realpath("goworkspace")):
+            with shell_env(GOPATH=os.path.realpath("goworkspace"),
+                           PATH=path):
+
                 local("go get github.com/mailgun/mailgun-go");
                 local("go get github.com/aws/aws-sdk-go/service/ses");
                 local("go get github.com/sendgrid/sendgrid-go");

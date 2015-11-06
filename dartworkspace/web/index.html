@@ -82,7 +82,9 @@
 </div>
 
 
-
+<div id="complete-error-message" style="display: 'none';">
+    <h1 id="error-message"></h1>
+</div>
 
 <div class="container-fluid" id="mail-window">
     <button type="button" class="btn btn-default" id="logout">Sign out</button>
@@ -142,15 +144,17 @@
             <div class="well" id="geolist">
                 <br/>
                 <small>Click any list below to compose an e-mail</small>
-                <a href="#" class="list-group-item">
-                    <b>One Mail (9 Friends)</b>
-                </a>
+                <div id="geo-mailing-lists">
+                    <a href="#" class="list-group-item">
+                        <b>One Mail (9 Friends)</b>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-
+<center><small style="color: red;" id="system-message"></small></center>
 <center><small id="version">Text</small></center>
 <script type="application/dart" src="main.dart"></script>
 <script src="packages/browser/dart.js"></script>

@@ -8,6 +8,13 @@ import (
 	"encoding/base64"
 )
 
+func HashStringToHex(str string) string {
+	var randomOracle hash.Hash = sha256.New();
+	randomOracle.Write([]byte(str));
+	var bytes = randomOracle.Sum(nil);
+	return hex.Dump(bytes);
+}
+
 func ComputeAesKey(passphrase string) []byte {
 	var randomOracle hash.Hash = sha256.New();
 	randomOracle.Write([]byte(passphrase));

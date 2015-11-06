@@ -1,18 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="GO_MODULE" version="4">
-  <component name="GoLibraries">
-    <option name="urls">
-      <set />
-    </option>
+  <component name="FacetManager">
+    <facet type="bash" name="BashSupport">
+      <configuration>
+        <operationMode type="IgnoreAll" />
+      </configuration>
+    </facet>
   </component>
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$">
-      <excludeFolder url="file://$MODULE_DIR$/dartworkspace/bin/packages" />
-      <excludeFolder url="file://$MODULE_DIR$/dartworkspace/packages/emailclient" />
+      <excludeFolder url="file://$MODULE_DIR$/dartworkspace/build" />
+      <excludeFolder url="file://$MODULE_DIR$/dartworkspace/web/images/packages" />
+      <excludeFolder url="file://$MODULE_DIR$/dartworkspace/web/js/packages" />
       <excludeFolder url="file://$MODULE_DIR$/dartworkspace/web/packages" />
+      <excludeFolder url="file://$MODULE_DIR$/thirdparty/dart-sdk/lib/_internal/js_runtime/packages/js_runtime" />
+      <excludeFolder url="file://$MODULE_DIR$/thirdparty/dart-sdk/lib/_internal/sdk_library_metadata/packages/sdk_library_metadata" />
     </content>
     <orderEntry type="jdk" jdkName="Go 1.5.1" jdkType="Go SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Dart SDK" level="application" />
   </component>
 </module>

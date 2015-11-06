@@ -115,18 +115,18 @@ function check_python() {
     PYTHON=`which python`
     if [ -x ${PYTHON} ];
     then
-	PYVER=$(${PYTHON} -V 2>&1)
-	if [[ ${PYVER} < "Python 2.7" ]] &&
-	   [[ ${PYVER} > "Python 2.8" ]]; 
-	then
-	    warn "We prefer Python 2.7 version ${PYVER} was found".
-	else
-	    goodnews "${PYTHON} in version ${PYVER} was found"
-	fi
+	  PYVER=$(${PYTHON} -V 2>&1)
+	  if [[ ${PYVER} < "Python 2.7" ]] &&
+	     [[ ${PYVER} > "Python 2.8" ]];
+	  then
+	      warn "We prefer Python 2.7 version ${PYVER} was found".
+	  else
+	      goodnews "${PYTHON} in version ${PYVER} was found"
+	  fi
     else
-	return 1
+	  return 1
     fi
-    return 0
+      return 0
 }
 
 #
@@ -158,6 +158,7 @@ function check_pip() {
 }
 
 function download() {
+    echo $(get "PYTHON")
     echo "import urllib; urllib.urlretrieve('${1}','${2}');" | $(get "PYTHON")
 }
 
@@ -187,32 +188,69 @@ function install_fabric() {
 
 function install_golang_sdk() {
     mkdir -p ${SCRIPT_DIR}/../thirdparty
-    case ${OSTYPE} in
-	linux*)
-	    [[ -f "go.tgz" ]] &&
-	    download "https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz" "go.tgz" 
-	    tar xfz go.tgz -C ${SCRIPT_DIR}/../thirdparty ;;
-	freebsd*)
-	    [[ -f "go.tgz" ]] &&
-	    download "https://storage.googleapis.com/golang/go1.5.1.freebsd-amd64.tar.gz" "go.tgz" 
-	    tar xfz go.tgz -C ${SCRIPT_DIR}/../thirdparty ;;
-	darwin*)
-	    [[ -f "go.tgz" ]] &&
-	    download "https://storage.googleapis.com/golang/go1.5.1.darwin-amd64.pkg" "go.pkg"
-	    `which installer` -pkg go.pkg -target .;;
-	*)
+
+
+    if [[ "${OSTYPE}" == "linux" ]]; then
+	    if [[ ! -f "go.tgz" ]]; then
+	      download "https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz" "go.tgz"
+	    fi
+	    tar xfz go.tgz -C ${SCRIPT_DIR}/../thirdparty
+	fi
+
+	if [[ "${OSTYPE}" == "FreeBSD" ]]; then
+	    if [[ ! -f "go.tgz" ]]; then
+	      download "https://storage.googleapis.com/golang/go1.5.1.freebsd-amd64.tar.gz" "go.tgz"
+	    fi
+	    tar xfz go.tgz -C ${SCRIPT_DIR}/../thirdparty
+	fi
+
+	if [[ "${OSTYPE}" =~ "darwin" ]]; then
+	    if [[ ! -f "go.pkg" ]]; then
+	      download "https://storage.googleapis.com/golang/go1.5.1.darwin-amd64.pkg" "go.pkg"
+	    fi
+	    sudo `which installer` -pkg go.pkg -target /
+	 fi
+
+    if [[ ! -f go.zip ]] && [[ ! -f go.pkg ]]; then
 	    died "Didn't have go-lang sdk download for OSTYPE ${OSTYPE}"
-    esac
+	    return 1;
+	 else
+	    return 0;
+    fi
+}
+
+function install_dart_sdk() {
+
+    mkdir -p ${SCRIPT_DIR}/../thirdparty
+
+	if [[ "${OSTYPE}" == "linux" ]]; then
+  	    if [[ ! -f "dart.zip" ]]; then
+	      download "https://storage.googleapis.com/dart-archive/channels/stable/release/1.12.2/sdk/dartsdk-linux-x64-release.zip" dart.zip
+	    fi
+	    unzip dart.zip -d ${SCRIPT_DIR}/../thirdparty
+	fi
+
+	if [[ "${OSTYPE}" == "FreeBSD" ]]; then
+	    echo "Sorry the Dart-SDK port for FreeBSD is experimental see the FreeBSD 11 forum"
+	fi
+
+	if [[ "${OSTYPE}" =~ "darwin" ]]; then
+	    if [[ ! -f "dart.zip" ]]; then
+	      download "https://storage.googleapis.com/dart-archive/channels/stable/release/1.12.2/sdk/dartsdk-macos-x64-release.zip" "dart.zip"
+	    fi
+	    unzip dart.zip -d ${SCRIPT_DIR}/../thirdparty
+	fi
+
+    if [[ ! -f dart.zip ]]; then
+	    died "Didn't have dart-lang sdk download for OSTYPE ${OSTYPE}"
+    fi
 
     if [ "$?" == "0" ];
     then
 	return 0;
     fi
     return 1;
-}
 
-function install_dart_sdk() {
-    return 1;
 }
 
 function check_go_sdk() {
@@ -241,7 +279,7 @@ function main() {
 	action "Checking priviledges" $(get "CHKPRIV")
 	action "Installing Python using $(get "INSTALLER") " install_python
     else
-	put "PYTHON" "`which python`"
+	  put "PYTHON" "`which python`"
     fi 
 
     check_fabric
@@ -261,12 +299,14 @@ function main() {
 
     check_dart_sdk
     if [ "$?" == "1" ]; then
-	action "Installing Dart SDK" install_dart_sdk
+	   action "Installing Dart SDK" install_dart_sdk
     fi
 
     goodnews "Everything seems to be in order."
+    echo -e "\n\nYou might want to add `realpath ${SCRIPT_DIR}/../thirdparty`/**/bin"
+    echo "to your path."
 }
 
+
+
 main
-
-

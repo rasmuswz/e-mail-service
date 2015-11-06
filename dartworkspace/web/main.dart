@@ -2,7 +2,25 @@
  *
  * Entry point of the at the browser in index.html pointing here.
  *
- * We setup the model view controller here.
+ * We implement the Model-View-Controller pattern. The view is written
+ * in HTML found in index.html. The Model is implemented in mailmodel.dart.
+ * This file contains the controllers. We have a controller class for each
+ * business-logical component presented by the view. These are:
+ *
+ * - LoginWindow
+ * - MailWindow
+ *    [] list of email on the left
+ *    [] main mail-reading window
+ * - System Message
+ * - SignOut
+ * - NoServiceFullScreenErrorMessage
+ * - LocationMailingList
+ *
+ * which are all collected in one ViewController that takes care of
+ * Business logic using its sub-controllers.
+ *
+ * Here we use the Dart language to provide separation between view
+ * and controller by letting HTML
  *
  * Author: Rasmus Winther Zakarias
  */
@@ -10,6 +28,7 @@
 import 'dart:html';
 import 'dart:async';
 import 'mailmodel.dart';
+import 'geoconnection.dart';
 
 /**
  * Controls the MailBox dropdown menu that selects which
@@ -37,34 +56,12 @@ class MailBoxSelectController {
   }
 }
 
-
-/**
- * Controls the list of mail-meta-data items in the list of mail.
- */
-class MailListController {
-
-  DivElement view;
-
-  MailBoxMailListController() {
-    view = querySelector("#list-of-emails");
-  }
-
-  void addMailitem(Email mail) {
-
-  }
-
-
-}
-
-
 class EmailViewItem {
-
   Email mail;
 
   EmailViewItem(this.mail);
 
-
-  AnchorElement render() {
+  AnchorElement display() {
     AnchorElement item = new AnchorElement();
     item.className = "list-group-item";
 
@@ -85,13 +82,11 @@ class EmailViewItem {
 }
 
 class MailWindowController {
-
   DivElement view;
   DivElement listOfEmails;
-  GeoMailDataModel model;
+  GeoMailModel model;
   AnchorElement selected;
-  DivElement  emailContent;
-
+  DivElement emailContent;
 
   MailWindowController(this.model) {
     view = querySelector("#mail-window");
@@ -103,11 +98,11 @@ class MailWindowController {
   void displayWindow() {
     view.style.display = 'block';
     listOfEmails.children.clear();
-    List<Email> emails = model.loadEmailList(0,10);
-    emails.forEach( (mail) {
-      AnchorElement m = new EmailViewItem(mail).render();
+    List<Email> emails = model.loadEmailList(0, 10);
+    emails.forEach((mail) {
+      AnchorElement m = new EmailViewItem(mail).display();
       listOfEmails.children.add(m);
-      m.onClick.listen( (e) {
+      m.onClick.listen((e) {
         if (selected != null) {
           selected.className = "list-group-item";
         }
@@ -123,14 +118,32 @@ class MailWindowController {
   }
 }
 
+class SystemMessageController {
+  Element msg;
+
+  SystemMessageController() {
+    this.view = querySelector("#system-message");
+  }
+
+  void display(String message) {
+    msg.innerHtml = message;
+    msg.style.display = 'block';
+    new Timer(new Duration(seconds: 2), () {
+      this.hide();
+    });
+  }
+
+  void hide() {
+    msg.style.display = 'none';
+  }
+}
 
 class LoginWindowController {
-
   DivElement view;
   ButtonElement signInbutton;
   InputElement username;
   PasswordInputElement password;
-  GeoMailDataModel model;
+  GeoMailModel model;
   MailWindowController nextControl;
 
   LoginWindowController(this.model, this.nextControl) {
@@ -141,13 +154,12 @@ class LoginWindowController {
     view.style.display = 'block';
 
     signInbutton.onClick.listen((e) {
-      if (model.login(username.value, password.value)) {
+      if (model.logIn(username.value, password.value)) {
         this.hideWindow();
         nextControl.displayWindow();
-      }
+      } else {}
     });
   }
-
 
   void displayWindow() {
     view.style.display = 'block';
@@ -159,15 +171,14 @@ class LoginWindowController {
 }
 
 class SignOutController {
-
   ButtonElement view;
   MailWindowController mailView;
-  GeoMailDataModel model;
+  GeoMailModel model;
   LoginWindowController loginView;
 
-  SignOutController(this.model,this.mailView,this.loginView) {
+  SignOutController(this.model, this.mailView, this.loginView) {
     view = querySelector("#logout");
-    view.onClick.listen( (e) {
+    view.onClick.listen((e) {
       this.signOut();
     });
   }
@@ -175,36 +186,123 @@ class SignOutController {
   void signOut() {
     mailView.hideWindow();
     loginView.displayWindow();
-    model.logout();
+    model.logOut();
+  }
+}
 
+class NoServiceFullScreenErrorMessageController {
+  DivElement view;
+  HeadingElement msg;
+
+  NoServiceFullScreenErrorMessageController() {
+    view = querySelector("#complete-error-message");
+    msg = querySelector("#error-message");
   }
 
+  void display(String message) {
+    msg.innerHtml = message;
+  }
+
+  void hide() {
+    view.style.display = 'none';
+  }
+}
+
+class GeoMailingListItem {
+  String name;
+  AnchorElement item;
+  GeoMailModel model;
+  int count;
+
+  GeoMailingListItem(this.name, this.model) {
+    item = new AnchorElement();
+    item.onClick.listen(() => this.clicked());
+  }
+
+  void buildItem() {
+    item.style.display = 'none';
+    item.children.clear();
+    item.innerHtml = "<b>${this.name}</b>(${this.count})";
+  }
+
+  void display() {
+    item.style.display = 'block';
+  }
+
+  void hide() {
+    item.style.display = 'none';
+  }
+
+  void clicked() {}
+}
+
+class LocationMalingListController {
+  DivElement mailingList;
+  GeoMailModel model;
+
+  LocationMalingListController(this.model) {
+    this.mailingList = querySelector("#geo-mailing-listts");
+  }
+
+  void populateList() {}
+}
+
+class ViewController {
+  MailWindowController mailWindow;
+  LoginWindowController loginWindow;
+  MailBoxSelectController mboxController;
+  SignOutController signOut;
+  NoServiceFullScreenErrorMessageController completeErrorMessage;
+
+  GeoMailModel model;
+
+  ViewController(this.model) {
+    this.mailWindow = new MailWindowController(model);
+    this.loginWindow = new LoginWindowController(model, mailWindow);
+    this.mboxController = new MailBoxSelectController();
+    this.signOut = new SignOutController(model, mailWindow, loginWindow);
+    this.completeErrorMessage = new NoServiceFullScreenErrorMessageController();
+    model.setView(this);
+  }
+
+  void setMailBoxes(List<String> mboxNames) {
+    mboxController.setOptions(mboxNames);
+  }
+
+  void connectionDown() {
+    this.hide();
+    completeErrorMessage.display("We have lost connection with the server.");
+  }
+
+  void connectionUp() {
+    this.display();
+    completeErrorMessage.hide();
+  }
+
+  void display() {
+    if (model.IsLoggedIn) {
+      mailWindow.displayWindow();
+    } else {
+      loginWindow.displayWindow();
+    }
+  }
+
+  void hide() {
+    mailWindow.hideWindow();
+    loginWindow.hideWindow();
+    completeErrorMessage.hide();
+  }
 }
 
 main() {
+  ClientAPI conn = new ClientAPI("/go.api");
+  GeoMailModel model = new GeoMailModel(conn);
+  ViewController view = new ViewController(model);
 
-  GeoMailConnection conn = new GeoMailConnection("/go.api");
-
-  GeoMailDataModel model = new GeoMailDataModel(conn);
-
-  MailWindowController mailWindow = new MailWindowController(model);
-  LoginWindowController loginWindow = new LoginWindowController(model, mailWindow);
-
-  MailBoxSelectController mboxController = new MailBoxSelectController();
-  mboxController.setOptions(["inbox", "sent", "drafts", "play"]);
-
-  SignOutController signOut = new SignOutController(model,mailWindow,loginWindow);
-
-  model.ListenForConnectionState().then( (status) {
-    if (status == "down") {
-      signOut.signOut();
-    }
-  });
-
+  view.display();
 
   querySelector("#version").innerHtml =
-    "You are watching Geo Mail version <font color=\"red\">"+model.getVersion()+"</font>";
-
-
-
+      "You are watching Geo Mail version <font color=\"red\">" +
+          model.getVersion() +
+          "</font>";
 }

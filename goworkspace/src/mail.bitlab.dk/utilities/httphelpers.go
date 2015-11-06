@@ -42,3 +42,7 @@ func GetQuery(url string, http_headers map[string]string) string {
 
 	return string(bytes);
 }
+
+func GetString(url string) string {
+	return GetQuery(url,make(map[string]string));
+}

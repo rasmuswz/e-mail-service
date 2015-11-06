@@ -10,13 +10,15 @@ import (
 	"strconv"
 	"log"
 	"errors"
+	"mail.bitlab.dk/utilities"
+	"encoding/base64"
 )
 
 type ClientAPI struct {
 	docRoot string
 	mtacontainer.HealthService;
-	events chan mtacontainer.Event;
-	port int;
+	events  chan mtacontainer.Event;
+	port    int;
 }
 
 
@@ -39,20 +41,90 @@ func NewServer(docRoot string, port int) *ClientAPI {
 	return result;
 }
 
+func (ths *ClientAPI) alivePingHandler(w http.ResponseWriter, r *http.Request) {
+	version := utilities.GetString("https://localhost/version.txt");
+	w.Write([]byte(version));
+	w.Header()["StatusCode"] = []string{"200"};
+	r.Body.Close();
+}
+
+func decodeBasicAuth(auth string) (string,string,bool) {
+	// TODO(rwz): We need to handle decoding error
+	var bytes,_ = base64.StdEncoding.DecodeString(auth);
+	var authstr = string(bytes);
+	var parts = strings.Split(authstr," ");
+	if strings.Trim(parts[0]," ") != "Basic" {
+		return "","",false;
+	}
+	var usernameAndPassword = strings.Split(parts[1],":");
+	var username = usernameAndPassword[0];
+	var password = usernameAndPassword[1];
+
+	return username,password,true;
+}
+
+func (ths *ClientAPI) handleLogin(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close();
+
+	authStr := r.Header["Authorization"];
+
+	var username,password,ok = decodeBasicAuth(authStr);
+	if ok == false {
+		http.Error(w,"Bad authorization",http.StatusBadRequest);
+		return;
+	}
+
+	q := "?username"+username;
+	q += "&password"+password;
+	q += "&location="+r.URL.Query().Get("location");
+
+	resp, err := http.Get("http://localhost" + utilities.RECEIVE_BACKEND_LISTEN_FOR_CLIENT_API + q);
+	if err != nil {
+		sessionId, errAll := ioutil.ReadAll(resp.Body)
+		if errAll == nil {
+			w.Write(sessionId);
+			r.Body.Close();
+			return;
+		}
+		http.Error(w,"Internal server error decoding response from Receiver Back End.",500);
+	}
+	http.Error(w,"Internal server error Receiver Back End is down",500);
+	ths.events <- mtacontainer.NewEvent(mtacontainer.EK_CRITICAL,
+		errors.New("Could not connect to receiver back end"),ths);
+}
+
+func (a *ClientAPI) logoutHandler(w http.ResponseWriter, r *http.Request) {
+	var q = "/logout?session="+r.URL.Query().Get("session");
+	_,err := http.Get("http://localhost" + utilities.RECEIVE_BACKEND_LISTEN_FOR_CLIENT_API + q);
+
+	if err != nil {
+		w.Write([]byte("OK"));
+	}
+	r.Body.Close();
+}
+
+func (a *ClientAPI) getMboxesHandler(w http.ResponseWriter, r * http.Request) {
+
+}
+
 func (a *ClientAPI) serve() {
 
 	var mux = http.NewServeMux();
-	mux.HandleFunc("/api.go",a.clientApiHandler);
-	mux.HandleFunc("/",a.viewHandler);
+	mux.HandleFunc("/go.api/alive/", a.alivePingHandler);
+	mux.HandleFunc("/go.api/login",  a.handleLogin);
+	mux.HandleFunc("/go.api/logout", a.logoutHandler);
+	mux.HandleFunc("/go.api/mboxes", a.getMboxesHandler);
+
+	mux.HandleFunc("/", a.viewHandler);
 
 
-	var addr = ":"+strconv.Itoa(a.port);
-	a.events <- mtacontainer.NewEvent(mtacontainer.EK_OK,errors.New("Serving on port: "+addr));
+	var addr = ":" + strconv.Itoa(a.port);
+	a.events <- mtacontainer.NewEvent(mtacontainer.EK_OK, errors.New("Serving on port: " + addr));
 
-	err := http.ListenAndServeTLS(addr,"cert.pem","key.pem",mux);
+	err := http.ListenAndServeTLS(addr, "cert.pem", "key.pem", mux);
 
-	if (err != nil){
-		log.Fatalln("[ClientApi, Error] "+err.Error());
+	if (err != nil) {
+		log.Fatalln("[ClientApi, Error] " + err.Error());
 	}
 }
 
@@ -60,7 +132,7 @@ func (a *ClientAPI) clientApiHandler(w http.ResponseWriter, r *http.Request) {
 
 	var path string = r.URL.Path;
 
-	if path[strings.LastIndex(path,"/")+1:len(path)] == "alive" {
+	if path[strings.LastIndex(path, "/") + 1:len(path)] == "alive" {
 		w.Write([]byte("yes"));
 		r.Body.Close();
 	}
