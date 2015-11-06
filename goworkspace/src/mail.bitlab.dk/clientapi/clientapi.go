@@ -66,7 +66,12 @@ func decodeBasicAuth(auth string) (string,string,bool) {
 func (ths *ClientAPI) handleLogin(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close();
 
-	authStr := r.Header["Authorization"];
+	if len(r.Header["Authorization"]) < 1 {
+		http.Error(w,"missing authorization",http.StatusBadRequest);
+		r.Body.Close();
+		return;
+	}
+	authStr := r.Header["Authorization"][0];
 
 	var username,password,ok = decodeBasicAuth(authStr);
 	if ok == false {

@@ -7,9 +7,9 @@
 package backend
 import (
 	"strconv"
-	"encoding/json"
+	jsonPackage "encoding/json"
 	"strings"
-	"net/http"
+//	"net/http"
 )
 
 
@@ -37,7 +37,7 @@ type UserBlob struct {
 	SessionId string;
 }
 
-func (ths *UserBlob) IsLoggedIn() {
+func (ths *UserBlob) IsLoggedIn() bool {
 	return ths.SessionId != "";
 }
 
@@ -61,7 +61,7 @@ func UserBlobFromJSonMap(m map[string]string) *UserBlob {
 
 func NewUserBlob(jsonBlob string) *UserBlob {
 	blob := new(UserBlob);
-	var decoder = json.NewDecoder(strings.NewReader(json));
+	var decoder = jsonPackage.NewDecoder(strings.NewReader(jsonBlob));
 	decoder.Decode(blob);
 	return blob;
 }
@@ -219,20 +219,20 @@ func NewProxyStore(endpoint string) JSonStore {
 
 func (ths *ProxyStore) PutJSonBlob(jsonblob map[string]string) uint64 {
 
-	jsonstr,jsonStrErr := json.Marshal(jsonblob);
+	_, jsonStrErr := jsonPackage.Marshal(jsonblob);
 
 	if jsonStrErr != nil {
 		// TODO(rwz): We need to log this somewhere
 	}
 
-	strings.NewReader()
-	http.NewRequest("GET",ths.clientApiEndPoint,)
 
-	json.NewEncoder()
-
+	//jsonPackage.NewEncoder()
+	return 0;
 }
 
 
 func (ths *ProxyStore) GetJSonBlob(matching map[string]string) []map[string]string {
+
+	return make([]map[string]string,1);
 
 }

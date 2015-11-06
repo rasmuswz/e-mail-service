@@ -61,7 +61,7 @@ func (ths *ReceiveBackEnd) ListenForClientApi() {
 	mux.HandleFunc("/getmail",ths.serviceClientApi);
 	mux.HandleFunc("/login", ths.handleLogin);
 	mux.HandleFunc("/logout",ths.handleLogout);
-	err := http.ListenAndServe("http://localhost"+utilities.RECEIVE_BACKEND_LISTEN_FOR_CLIENT_API,mux);
+	err := http.ListenAndServe("localhost"+utilities.RECEIVE_BACKEND_LISTEN_FOR_CLIENT_API,mux);
 	if err != nil {
 		log.Fatalln("[Receive BackEnd] Cannot listen for ClientApi:\n"+err.Error());
 	}
@@ -71,7 +71,7 @@ func (ths *ReceiveBackEnd) ListenForClientApi() {
 func (ths *ReceiveBackEnd) handleLogout(w http.ResponseWriter, r *http.Request) {
 	var sessionId = r.URL.Query().Get("session");
 
-	ths.store.GetJSonBlob()
+	ths.store.GetJSonBlob(map[string]string{ "SessionId": sessionId});
 
 	r.Body.Close();
 	return;
@@ -98,7 +98,7 @@ func (ths *ReceiveBackEnd) handleLogin(w http.ResponseWriter, r *http.Request) {
 	//
 	if (len(users) == 0) {
 		users = ths.store.GetJSonBlob(map[string]string{"username": username});
-		if users == 0 {
+		if len(users) == 0 {
 			ths.store.PutJSonBlob(map[string]string{
 				"username": username,
 				"password": password,
@@ -121,8 +121,7 @@ func (ths *ReceiveBackEnd) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if (len(users) == 1) {
 		var sessionId = ths.createSession(username,location);
 		w.Write([]byte(sessionId));
-		ths.store.PutJSonBlob(map[string]string{"username": username,"password": password},
-			map[string]string{"location": location });
+		ths.store.PutJSonBlob(map[string]string{"username": username,"password": password});
 	} else {
 		w.Write([]byte("Access denied"));
 		w.Header()["StatusCode"] = []string{"406"};
@@ -204,7 +203,7 @@ func (ths *ReceiveBackEnd) ListenForMtaContainer() {
 
 	var mux = http.NewServeMux();
 	mux.HandleFunc("/newmail", ths.receiveMail);
-	var err = http.ListenAndServe("http://localhost"+utilities.RECEIVE_BACKEND_LISTENS_FOR_MTA, mux);
+	var err = http.ListenAndServe("localhost"+utilities.RECEIVE_BACKEND_LISTENS_FOR_MTA, mux);
 	if err != nil {
 		log.Fatalln("[Receiver Backend] Failed to listen for MTA: " + err.Error());
 	}
