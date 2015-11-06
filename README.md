@@ -8,7 +8,8 @@ E Mail Service
 
 This is now work-in-progress.
 
-[GeoMail Live](https://mail.bitlab.dk)
+[GeoMail Live](https://mail.bitlab.dk) - Try logging in, if a non existing user logs in
+for the first time, she is created. Thus happy go-luck and log in with your favorit username.
 
 [Click here](#deploy-test-build-get)
 
