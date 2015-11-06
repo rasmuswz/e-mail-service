@@ -159,25 +159,28 @@ class GeoMailModel {
   /**
    * Perform login using RFC 1945 Basic Authorization.
    */
-  bool logIn(String username, String password) {
+  Future<bool> logIn(String username, String password) {
     this.basicAuth = null;
     String auth = window.btoa(username + ":" + password);
-
+    Completer<bool> c = new Completer<bool>();
+    view.setSystemMessage("We are processing your location data and verifys your identity...");
     var f = window.navigator.geolocation.getCurrentPosition(enableHighAccuracy: false,
     timeout: new Duration(minutes: 2))..then( (position) {
+      print("position acquired");
       String location = position.toString();
       String sessionId = connection.doLogin(auth,location);
       if (sessionId != null) {
         this.basicAuth = auth;
         this.session = sessionId;
-
+        c.complete(true);
+      } else {
+        view.setSystemMessage("Login failed");
+        c.complete(false);
       }
     });
 
-    Future.wait([f]);
 
-  return  this.basicAuth != null;
-
+  return c.future;
   }
 
 

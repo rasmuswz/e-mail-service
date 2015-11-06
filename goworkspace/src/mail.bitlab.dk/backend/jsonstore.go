@@ -20,8 +20,24 @@ import (
 // TODO(rwz): Add removal of blobs at some point.
 // ------------------------------------------------------------
 type JSonStore interface {
-	GetJSonBlob(matching map[string]string) []map[string]string;
-	PutJSonBlob(jsonblob map[string]string) uint64;
+	GetJSonBlobs(matching map[string]string) []map[string]string;
+
+	//
+	// Insert {blob} into storage and get back an unique
+	// identifier for it
+	//
+	PutJSonBlob(blob map[string]string) uint64;
+
+	//
+	// Update an existing item, returns true if items was
+	// found and updated. Otherwise we return false.
+	//
+	UpdJSonBlob(matching map[string]string, blob map[string]string) (uint64,bool);
+
+	//
+	// Get by id, having the id lookups happen much quicker
+	//
+	GetById(id uint64) (map[string]string,bool);
 }
 
 
@@ -39,6 +55,25 @@ type UserBlob struct {
 
 func (ths *UserBlob) IsLoggedIn() bool {
 	return ths.SessionId != "";
+}
+
+
+func UserBlobNewFull(username , password, location, sessionid string) *UserBlob {
+	result := new(UserBlob);
+	result.Username = username;
+	result.Password = password;
+	result.Location = location;
+	result.SessionId = sessionid;
+	return result;
+}
+
+func UserBlobNew(username , password string) *UserBlob{
+	result := new(UserBlob);
+	result.Username = username;
+	result.Password = password;
+	result.Location = "";
+	result.SessionId = "";
+	return result;
 }
 
 func (ths *UserBlob) ToJSonMap() map[string]string {
@@ -59,7 +94,7 @@ func UserBlobFromJSonMap(m map[string]string) *UserBlob {
 	return result;
 }
 
-func NewUserBlob(jsonBlob string) *UserBlob {
+func UserBlobNewFromJSonStr(jsonBlob string) *UserBlob {
 	blob := new(UserBlob);
 	var decoder = jsonPackage.NewDecoder(strings.NewReader(jsonBlob));
 	decoder.Decode(blob);
@@ -73,12 +108,12 @@ func NewUserBlob(jsonBlob string) *UserBlob {
 //
 // ------------------------------------------------------------------
 type MBoxBlob struct {
-	Name string;
+	Name     string;
 	Username string; // mail box owner
 }
 
 func (ths *MBoxBlob) ToJSonMap() map[string]string {
-	result := make(map[string]string,2);
+	result := make(map[string]string, 2);
 	result["Name"] = ths.Name;
 	result["Username"] = ths.Username;
 	return result;
@@ -107,7 +142,7 @@ type EmailBlob struct {
 }
 
 func (ths *EmailBlob) ToJSonMap() map[string]string {
-	result := make(map[string]string,6);
+	result := make(map[string]string, 6);
 	result["MBox"] = ths.Mbox;
 	result["Subject"] = ths.Subject;
 	result["To"] = ths.To;
@@ -147,26 +182,61 @@ type MemoryJsonStore struct {
 	idpool uint64;
 }
 
+func checkMatch(db map[string]string, m map[string]string) bool {
+
+	for k, v := range m {
+		dbval, ok := db[k];
+
+		if ok == false {
+			println("Looking for key \""+k+"\" but it wasn't found");
+			return false
+		};
+
+		if (strings.Compare(dbval, v) != 0) {
+			println("Values for key "+k+" mismatch: asked for "+v+"!="+dbval);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
+func (ths *MemoryJsonStore) findBlob(j map[string]string, from uint64) (uint64,bool) {
+
+	for id,databaseItem := range ths.memory {
+		if id >= from {
+			if (checkMatch(databaseItem,j)) {
+				return id,true;
+			}
+		}
+	}
+	return 0,false;
+}
+
+func (ths * MemoryJsonStore) UpdJSonBlob(matching map[string]string,
+										 blob map[string]string) (uint64,bool) {
+	var id,ok = ths.findBlob(matching,0);
+	if ok {
+		for k,v := range blob {
+			ths.memory[id][k] = v;
+		}
+		return id,true;
+	}
+	return 0,false;
+}
+
+
 //
 // We scan the whole DB in search for all blobs that has matching
 // keys and values from {matching}
 //
-func (ths *MemoryJsonStore) GetJSonBlob(matching map[string]string) []map[string]string {
+func (ths *MemoryJsonStore) GetJSonBlobs(matching map[string]string) []map[string]string {
 	var res = make([]map[string]string, 0);
-	//var ids = make([]uint64,0);
-	for id, val := range ths.memory {
-		for key, v := range val {
-			var allMatch = true;
-			for skey, sv := range matching {
-				if (key != skey && v != sv) {
-					allMatch = false;
-					break;
-				}
-			}
-			if (allMatch) {
-				res = append(res, ths.memory[id]);
-				//	ids = append(ids,id);
-			}
+	for _, databaseItem := range ths.memory {
+		allMatchingKeysFound := checkMatch(databaseItem, matching);
+		if allMatchingKeysFound == true {
+			res = append(res,databaseItem);
 		}
 	}
 	return res;
@@ -176,13 +246,18 @@ func (ths *MemoryJsonStore) GetJSonBlob(matching map[string]string) []map[string
 // We fix a new unique id and insert the blob
 //
 func (ths *MemoryJsonStore) PutJSonBlob(jsonblob map[string]string) uint64 {
-	id := ths.idpool + 1;
+	id := ths.idpool;
 	ths.idpool += 1;
 	ths.memory[id] = jsonblob;
 	jsonblob[MEMORY_JSON_STORE_UID_KEY] = strconv.FormatUint(id, 10);
 	return id;
 }
 
+
+func (ths *MemoryJsonStore) GetById(id uint64) (map[string]string,bool) {
+	v,ok :=  ths.memory[id];
+	return v,ok;
+}
 
 func NewMemoryStore() JSonStore {
 	var result *MemoryJsonStore = new(MemoryJsonStore);
@@ -231,8 +306,16 @@ func (ths *ProxyStore) PutJSonBlob(jsonblob map[string]string) uint64 {
 }
 
 
-func (ths *ProxyStore) GetJSonBlob(matching map[string]string) []map[string]string {
+func (ths *ProxyStore) GetJSonBlobs(matching map[string]string) []map[string]string {
 
-	return make([]map[string]string,1);
+	return make([]map[string]string, 1);
 
+}
+
+func (ths *ProxyStore) UpdJSonBlob(matching map[string]string, blob map[string]string) (uint64,bool) {
+	return 0,false;
+}
+
+func (ths *ProxyStore) GetById(id uint64) (map[string]string,bool) {
+	return nil,false;
 }

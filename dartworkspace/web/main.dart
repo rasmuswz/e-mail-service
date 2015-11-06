@@ -122,7 +122,7 @@ class SystemMessageController {
   Element msg;
 
   SystemMessageController() {
-    this.view = querySelector("#system-message");
+    this.msg = querySelector("#system-message");
   }
 
   void display(String message) {
@@ -154,10 +154,13 @@ class LoginWindowController {
     view.style.display = 'block';
 
     signInbutton.onClick.listen((e) {
-      if (model.logIn(username.value, password.value)) {
-        this.hideWindow();
-        nextControl.displayWindow();
-      } else {}
+      model.logIn(username.value, password.value).then((ok) {
+        if (ok) {
+          this.hideWindow();
+          nextControl.displayWindow();
+        } else {
+        }
+      });
     });
   }
 
@@ -170,7 +173,9 @@ class LoginWindowController {
   }
 }
 
-class SignOutController {
+class
+
+SignOutController {
   ButtonElement view;
   MailWindowController mailView;
   GeoMailModel model;
@@ -233,7 +238,8 @@ class GeoMailingListItem {
     item.style.display = 'none';
   }
 
-  void clicked() {}
+  void clicked() {
+  }
 }
 
 class LocationMalingListController {
@@ -244,7 +250,8 @@ class LocationMalingListController {
     this.mailingList = querySelector("#geo-mailing-listts");
   }
 
-  void populateList() {}
+  void populateList() {
+  }
 }
 
 class ViewController {
@@ -253,6 +260,7 @@ class ViewController {
   MailBoxSelectController mboxController;
   SignOutController signOut;
   NoServiceFullScreenErrorMessageController completeErrorMessage;
+  SystemMessageController systemMessages;
 
   GeoMailModel model;
 
@@ -262,6 +270,7 @@ class ViewController {
     this.mboxController = new MailBoxSelectController();
     this.signOut = new SignOutController(model, mailWindow, loginWindow);
     this.completeErrorMessage = new NoServiceFullScreenErrorMessageController();
+    this.systemMessages = new SystemMessageController();
     model.setView(this);
   }
 
@@ -292,17 +301,28 @@ class ViewController {
     loginWindow.hideWindow();
     completeErrorMessage.hide();
   }
+
+  void setSystemMessage(String message) {
+    this.systemMessages.display(message);
+  }
 }
 
+void displayVersionString() {
+  querySelector("#version").innerHtml =
+  "You are watching Geo Mail version <font color=\"red\">" +
+  model.getVersion() +
+  "</font>";
+}
+
+/**
+ *
+ * Main entry point. We initialize the connection, start a GeoMailModel
+ * and take control of the Html View.
+ *
+ */
 main() {
   ClientAPI conn = new ClientAPI("/go.api");
   GeoMailModel model = new GeoMailModel(conn);
   ViewController view = new ViewController(model);
-
   view.display();
-
-  querySelector("#version").innerHtml =
-      "You are watching Geo Mail version <font color=\"red\">" +
-          model.getVersion() +
-          "</font>";
 }

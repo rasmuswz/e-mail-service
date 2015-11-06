@@ -43,7 +43,7 @@ func main() {
 		os.Exit(-2);
 	}
 
-	var clientApi = clientapi.NewServer(root,int(port));
+	var clientApi = clientapi.New(root,int(port));
 	var events = clientApi.GetEvent();
 	var curDir,_ = os.Getwd();
 	println(i_am+" Client API serving "+root+" at :"+strconv.Itoa(int(port))+" from directory "+curDir);

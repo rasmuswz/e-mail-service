@@ -12,6 +12,8 @@ import (
 	"errors"
 	"mail.bitlab.dk/utilities"
 	"encoding/base64"
+	"mail.bitlab.dk/utilities/go"
+	"encoding/hex"
 )
 
 type ClientAPI struct {
@@ -19,6 +21,7 @@ type ClientAPI struct {
 	mtacontainer.HealthService;
 	events  chan mtacontainer.Event;
 	port    int;
+	log *log.Logger;
 }
 
 
@@ -32,11 +35,12 @@ func (a *ClientAPI) GetEvent() chan mtacontainer.Event {
 // Create a Server for the website and ClientApi
 //
 // --------------------------------------------------------
-func NewServer(docRoot string, port int) *ClientAPI {
+func New(docRoot string, port int) *ClientAPI {
 	var result = new(ClientAPI);
 	result.docRoot = docRoot;
 	result.events = make(chan mtacontainer.Event);
 	result.port = port;
+	result.log = utilities.GetLogger("[client api] ",os.Stdout);
 	go result.serve();
 	return result;
 }
@@ -48,54 +52,77 @@ func (ths *ClientAPI) alivePingHandler(w http.ResponseWriter, r *http.Request) {
 	r.Body.Close();
 }
 
-func decodeBasicAuth(auth string) (string,string,bool) {
+func decodeBasicAuth(auth string, log *log.Logger) (string,string,bool) {
 	// TODO(rwz): We need to handle decoding error
-	var bytes,_ = base64.StdEncoding.DecodeString(auth);
-	var authstr = string(bytes);
-	var parts = strings.Split(authstr," ");
+	var parts = strings.Split(auth," ");
+
 	if strings.Trim(parts[0]," ") != "Basic" {
+		log.Println("Not basic: "+parts[0]+", "+parts[1]);
 		return "","",false;
 	}
-	var usernameAndPassword = strings.Split(parts[1],":");
+	var bytes,_ = base64.StdEncoding.DecodeString(strings.Trim(parts[1]," "));
+	var authorizationString = string(bytes);
+
+
+	var usernameAndPassword = strings.Split(authorizationString,":");
 	var username = usernameAndPassword[0];
 	var password = usernameAndPassword[1];
-
 	return username,password,true;
 }
 
 func (ths *ClientAPI) handleLogin(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close();
 
+	ths.log.Println("Handle Login");
+
 	if len(r.Header["Authorization"]) < 1 {
-		http.Error(w,"missing authorization",http.StatusBadRequest);
-		r.Body.Close();
+		ths.log.Println("Authorization header is missing");
+		http.Error(w,"Missing authorization",http.StatusBadRequest);
 		return;
 	}
 	authStr := r.Header["Authorization"][0];
 
-	var username,password,ok = decodeBasicAuth(authStr);
+	var username,password,ok = decodeBasicAuth(authStr,ths.log);
 	if ok == false {
+		ths.log.Println("Authorization failed it is not basic ");
 		http.Error(w,"Bad authorization",http.StatusBadRequest);
 		return;
 	}
 
-	q := "?username"+username;
-	q += "&password"+password;
-	q += "&location="+r.URL.Query().Get("location");
+	q := "/login?username="+username;
+	q += "&password="+password;
+	q += "&location=here"; // TODO(rwz): Get the location
 
-	resp, err := http.Get("http://localhost" + utilities.RECEIVE_BACKEND_LISTEN_FOR_CLIENT_API + q);
-	if err != nil {
+	ths.log.Println("Wuhu we have user: "+username);
+	receiveBackendLoginQuery := "http://localhost" + utilities.RECEIVE_BACKEND_LISTEN_FOR_CLIENT_API + q;
+	ths.log.Println("Send query: "+receiveBackendLoginQuery);
+	resp, err := http.Get(receiveBackendLoginQuery);
+	if err == nil {
+		ths.log.Println("Ok connection to receiver backend");
 		sessionId, errAll := ioutil.ReadAll(resp.Body)
+		ths.log.Println("session id: "+string(sessionId));
+		if len(sessionId) < 64 {
+			ths.log.Println("Reporting back to UI that an error occured... "+goh.IntToStr(len(sessionId)));
+			http.Error(w,resp.Status,resp.StatusCode);
+			return;
+		} else {
+			ths.log.Println("We have sessionId with length: "+goh.IntToStr(len(sessionId)));
+			ths.log.Println("\n"+hex.Dump(sessionId));
+		}
+
+
 		if errAll == nil {
 			w.Write(sessionId);
-			r.Body.Close();
 			return;
+		}  else {
+			ths.log.Println("Auch failed to read response body from Receiver backend.");
+			http.Error(w,"Internal Server Error",http.StatusInternalServerError);
 		}
-		http.Error(w,"Internal server error decoding response from Receiver Back End.",500);
+	} else {
+		http.Error(w, "Backend refuses login from user", http.StatusInternalServerError);
+		ths.events <- mtacontainer.NewEvent(mtacontainer.EK_CRITICAL,
+			errors.New("Could not connect to receiver back end"), ths);
 	}
-	http.Error(w,"Internal server error Receiver Back End is down",500);
-	ths.events <- mtacontainer.NewEvent(mtacontainer.EK_CRITICAL,
-		errors.New("Could not connect to receiver back end"),ths);
 }
 
 func (a *ClientAPI) logoutHandler(w http.ResponseWriter, r *http.Request) {

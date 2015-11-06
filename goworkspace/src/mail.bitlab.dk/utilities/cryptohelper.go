@@ -12,7 +12,7 @@ func HashStringToHex(str string) string {
 	var randomOracle hash.Hash = sha256.New();
 	randomOracle.Write([]byte(str));
 	var bytes = randomOracle.Sum(nil);
-	return hex.Dump(bytes);
+	return hex.EncodeToString(bytes);
 }
 
 func ComputeAesKey(passphrase string) []byte {
