@@ -163,15 +163,21 @@ class GeoMailModel {
     this.basicAuth = null;
     String auth = window.btoa(username + ":" + password);
 
-    Geolocation location = Geolocation.getCurrentPosition(enableHighAccuracy: false,
-    timeout: new Duration(minutes: 2));
-    locationString = location.toString();
-    String sessionId = connection.doLogin(auth);
-    if (sessionId != null) {
-      this.basicAuth = auth;
-      this.session = sessionId;
-    }
-    return this.basicAuth != null;
+    var f = window.navigator.geolocation.getCurrentPosition(enableHighAccuracy: false,
+    timeout: new Duration(minutes: 2))..then( (position) {
+      String location = position.toString();
+      String sessionId = connection.doLogin(auth,location);
+      if (sessionId != null) {
+        this.basicAuth = auth;
+        this.session = sessionId;
+
+      }
+    });
+
+    Future.wait([f]);
+
+  return  this.basicAuth != null;
+
   }
 
 
