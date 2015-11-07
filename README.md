@@ -57,62 +57,60 @@ The ClientAPI is a Https-webserver which serves the client. Also, Ajax requests 
 
 On the client side a Dart-application renders the user interface. It implements the Model-View-Controller pattern having the View defined in [index.html](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/index.html), the Controller defined in [main.dart](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/main.dart) and a model defined in [mailmodel.dart](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/mailmodel.dart). The model takes a strategy for handing communication with the ClientAPI, see  [ClientAPI](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/geoconnection.dart) class.
 
-This design has decoupled components in order to scale well. A deployed instance of the system may include several MTAServers, and ClientApis running on different machines. However, to give a consistent experience a common storage is needed, and therefore all ClientAPIs need access to the same BackEndServer. We do provide a Proxy interface for supplying a [ProxyStore](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/backend/jsonstore.go#L270) where the idea is that one instance will have the actual physical storage while other BackEndServer servers use a Proxy.
+This design has decoupled components in order to scale well. A deployed instance of the system may include several MTAServers, and ClientApis running on different machines. However, to give a consistent experience a common storage is needed, and therefore all ClientAPIs need access to the same BackEndServer. We do provide a Proxy interface for supplying a [ProxyStore](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/backend/jsonstore.go#L270) where the idea is that one instance will have the actual physical storage while other BackEndServer servers could use a Proxy.
 
 Example Deployment
 --------------------
 
-To try out the application in practice the domain mail.bitlab.dk has been setup. The domain has been setup to accept email for mail.bitlab.dk and getting mail delivered by MailGun, AmazonSes. The domain is supported by two servers: mail0.bitlab.dk hosted here in Aarhus and mail1.bitlab.dk hosted by Amazon AWS in Oregon west. 
+To try out the application in practice the domain mail.bitlab.dk has been set up. The domain has been set up to accept email for mail.bitlab.dk and getting mail delivered by MailGun. The domain is supported by two servers: mail0.bitlab.dk hosted here in Aarhus and mail1.bitlab.dk hosted by Amazon AWS in Oregon west. 
 
-To give an idea how the deployment and build system is setup I invite you to take a tour at the build server. The Start-up-password is required to log-in at the server.
+The build system uses a Python based tool called  [Fabric](http://www.fabfile.org/). It enables one shell-command to build,
+test, commit and deploy new changes to the code base. This gives a short cycle from code to new running features. To get an
+idea of how this works you can try it out by logging in at the build-server. The <b>start-up-password</b> is required to log
+in, for help with you can also contact <a href="mailto:rwl@cs.au.dk">rwl@cs.au.dk</a>.
 
 <pre>
 ssh ubuntu@dev.bitlab.dk<br/>
 cd e-mail-service<br/>
 ls <br/>
 </pre>
-Here you will see this repository checked out. This machine is also setup with SSH-Private keys to allow it to deploy
-new version of the software to mail0.bitlab.dk and mail1.bitlab.dk. Try it:
+Here you will see this repository checked out. The machine is also setup with SSH-Private keys to allow it to deploy
+new versions of the software to mail0.bitlab.dk and mail1.bitlab.dk. Try it:
 
 <pre>
-fab deploy
+fab deploy_bitlab_servers
 </pre>
 
-You will see the Python-tool called [Fabric](http://www.fabfile.org/) running the deploy commands once for each server. 
-To get an overview of what it does see [fabfile.py](https://github.com/rasmuswz/e-mail-service/blob/master/fabfile.py). The <b>deploy</b> function near the bottom nicely lays out what is going on :-). The final step in the deployment process is 
-killing the existing processes and starting the newly installed ones. The old versions are kept on the servers until someone 
-logs-in and manually deletes them.
+Fabric will execute commands locally to build and test the workspace. Then, it uses ssh to upload files and execute
+the necessary ommands on the remote server to stop the running version and replace it. 
+To get an overview of what it does see [fabfile.py](https://github.com/rasmuswz/e-mail-service/blob/master/fabfile.py). The deploy function near the bottom lays out what is going on. Old versions are kept on the servers until someone 
+logs-in and manually deletes them or reenables them in case of a faulty deployment.
 
 Is it feature complete?
 --------------------
-No! Writing a full web-application from scratch is a lot of work. However I think we got far enough to get people excited about this project. Among missing features to have version realizing the concept of Geo Mailing we need:
+No! The central MTA Container component is completed with Failover and Monitoring.
+To complete the functionallity of the UI as it is now, we also need to be able to 
+   * show incoming e-mails 
+   * receive e-mails from more MTAProviders
+   * manage different mail-boxes (sent, drafts etc.)
 
-  * The GeoLists needs to be implemented (we do record user locations upon log in and store them) e.g. when the user clicks on a list in the bottom of the page (like on <b>One Mile (9 Friends)</b>) we need act on that.
-  * Each server instance (we deploy on two servers) has its own memory store. E.g. the user will see different data when the DNS server routes them to a different server. Also, incoming emails are stored between the servers at the will of DNS-scheduling.
-  * Getting email listed when logged in
-
-Among the thins I am particular proud of are:
-
-  * The MTA Container: GoLang's channels allow us to write a powerful Container aggregating the result from several MTA providers (Amazon SeS, MailGun etc) in to one stream in a concise and precise way. See [DefaultMTAContainer](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/mtacontainer/MTAService.go#L260) lines 273 to 300.
-  * The MTA Provider failover stategy: Again the approach of using channels for [Health](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/mtacontainer/MTAService.go#L116) Monitoring of our MTA Container allow us to implement FailOver to a different MTA provier in only [6 lines of Go-code](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/mtacontainer/mtaserver/main.go#L40). Each MTA Provider has a [FailureStrategy](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/mtacontainer/MTAService.go#L56) deciding when an error(s) is severe enough   that an MTA is considered down. We see these components in play for example in the [AmazonSeS MTA Provider](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/mtacontainer/amazonsesprovider/AmazonSeS.go#L137) lines 137 to 148. The MTA Provider sleeps for 2 seconds if an error occurs while submitting an E-mail for sending and the resubmits that email to it self. If this happens alot the [ThresholdFailureStrategy](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/mtacontainer/MTAService.go#L70) employed here will deem the MTA Down for good an notify on the events-channel and shutdown the MTA (lines 145 - 147).
-  * Events 
+Preparation is already done for some of this in the MTAServer and BackEndServer. For example, 
+the MailGun provider accepts incoming mails which are stored by the back-end.
 
 #Deploy, Test, Build, Get
 --------------------
 
-Well eager to deploy this project and try it out? [Live Demo](https://mail.bitlab.dk).
+See the [Live Demo here](https://mail.bitlab.dk).
 
-Want to do it your self, well we need to Get, Build and optionally run the tests first.
+To get, build, test and deploy the code yourself you need to follow the steps below.
 
-Getting GeoMail
+Getting BitMail
 ----
-
-Easy just clone this repo.
+Clone this repo.
 
 Preparing your machine
 ----
-
-You needs a few tools installed for the build for work:
+You must be running on Linux or OSX and you need the following tools installed :
 
   * Python 2.17
   * pip (to install Fabric do pip install Fabric)
@@ -120,26 +118,22 @@ You needs a few tools installed for the build for work:
   * GoLang-SDK 1.5
   * DartLang-SDK ^1.12.1
 
-Experimentally the scripts/bootstrap.sh script tries to get the dependencies right. This has 
-only be tested on OSX El Captain, but should work for Linux. 
-
 Building
 ----
-This takes a few easy steps depending on which operating system you are using.
+Change directory to e-mail-server and type <pre>fab build</pre>.
 
-<pre>
+```
 e-mail-service$ fab build
-</pre>
+```
 
-Notice how <pre>go get</pre> and <pre>pub get</pre> gets all the Go and Dart dependencies. Fabric build it all,
-invoking both the Dart and Go build systems as needed. The Fabfile.py is original work coming with this package.
+Fabric builds it all, invoking both the Dart and Go build systems as needed. Notice how <pre>go get</pre> and <pre>pub get</pre> get all the Go and Dart dependencies. 
 
 Testing
 ----
-We only have tests of the components written in Go. Try running the Go test suite:
-<pre>
+We only have tests for the components written in Go. To run the Go test suite:
+```
 e-mail-service$ cd goworkspace && go test
-</pre>
+```
 
 Or use Fabric
 
@@ -150,11 +144,11 @@ e-mail-service$ fab test
 Deploying
 -----
 
-Easy, this will update the production system at mail.bitlab.dk provided you have
+This will update the production system at mail.bitlab.dk provided you have
 got the SSH-RSA private keys to access the servers.
 ```
 fab deploy_bitlab_servers
 ```
 The ssh-keys needed are avaible in the <pre>demo@dev.bitlab.dk:.ssh/ec2key.pem</pre> file on the 
-test development environment. As stated above you can login with <pre>demo@dev.bitlab.dk</pre> using
-the Start-up-passphrase given in submission note.
+test development environment. As stated above you can log in with <pre>demo@dev.bitlab.dk</pre> using
+the <b>start-up-passphrase</b> given in submission note.
