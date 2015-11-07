@@ -223,7 +223,7 @@ function install_dart_sdk() {
 
     mkdir -p ${SCRIPT_DIR}/../thirdparty
 
-	if [[ "${OSTYPE}" == "linux" ]]; then
+	if [[ "${OSTYPE}" =~ "linux" ]]; then
   	    if [[ ! -f "dart.zip" ]]; then
 	      download "https://storage.googleapis.com/dart-archive/channels/stable/release/1.12.2/sdk/dartsdk-linux-x64-release.zip" dart.zip
 	    fi
