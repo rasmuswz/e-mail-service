@@ -76,7 +76,11 @@ func (ths *LoopBackProvider) handleOutgoingMessages() {
 				//Oh no we failed
 				close(ths.outgoing);
 				ths.events <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT,errors.New("Loop Back MTA is failing and going down"),m);
-				for _,mm := range ths.outgoing { // purge outgoing challen resubmitting everything in there
+				for { // purge outgoing challen resubmitting everything in there
+					mm,ok := <-ths.outgoing;
+					if ok == false {
+						break;
+					}
 					ths.events <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT,errors.New("Loop Back MTA is failing and going down"),mm);
 				}
 				ths.Stop();
