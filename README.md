@@ -2,9 +2,9 @@
 E Mail Service
 ------------------------------------------------------------
 
-<div style="width:100%;">
-<center><img src="docs/images/geomail.png" alt="GeoMail" width="250px"/></center>
-</div>
+
+
+
 
 [GeoMail Live](https://mail.bitlab.dk) - Try logging in, if a non existing user logs in
 for the first time, (s)he is created.
@@ -12,7 +12,7 @@ for the first time, (s)he is created.
 [Click here](#deploy-test-build-get) - To see how the system is built, tested and deployed.
 
 
-<img alt="Dev logo" src="docs/images/devlogo.png" width="80px"/> Concept and Design
+<img src="docs/images/geomail.png" alt="GeoMail" width="250px"/>Concept and Design
 --------------
 This section describes the conceptual idea and the design choices for a scalable 
 and reliable service.
@@ -30,7 +30,7 @@ allowing the user to send an email to his contacts (people he has
 received or send mails to) logged in with in a range of one mile from the
 users current location.
 
-Design
+<img alt="Dev logo" src="docs/images/devlogo.png" width="80px"/> Design
 ---
 This is a <b>full stack</b> implementation of e-mail service using several sending providers. See the 
 systems component diagram below. I provide a <b>web-mail front-end</b> with a back-end
