@@ -159,7 +159,7 @@ function check_pip() {
 
 function download() {
     echo $(get "PYTHON")
-    echo "import urllib; urllib.urlretrieve('${1}','${2}');" | $(get "PYTHON")
+    echo "import urllib; urllib.urlretrieve('${1}','${2}');" | python
 }
 
 function install_pip() {
@@ -190,8 +190,9 @@ function install_golang_sdk() {
     mkdir -p ${SCRIPT_DIR}/../thirdparty
 
 
-    if [[ "${OSTYPE}" == "linux" ]]; then
+    if [[ "${OSTYPE}" =~ "linux" ]]; then
 	    if [[ ! -f "go.tgz" ]]; then
+	      echo "Downloading";
 	      download "https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz" "go.tgz"
 	    fi
 	    tar xfz go.tgz -C ${SCRIPT_DIR}/../thirdparty
@@ -308,5 +309,4 @@ function main() {
 }
 
 
-
-main
+install_golang_sdk
