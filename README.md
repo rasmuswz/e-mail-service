@@ -6,13 +6,13 @@ E Mail Service
 
 
 
-[GeoMail Live](https://mail.bitlab.dk) - Try logging in. When a new user logs in
+[BitMail Live](https://mail.bitlab.dk) - Try logging in. When a new user logs in
 for the first time, (s)he is created.
 
 [Click here](#deploy-test-build-get) to see how the system is built, tested and deployed.
 
 
-<img src="docs/images/geomail.png" alt="GeoMail" width="250px"/>Concept and Design
+<img src="docs/images/bitmail.png" alt="BitMail" width="250px"/>Concept and Design
 --------------
 This section describes the conceptual idea and the design choices for a scalable 
 and reliable e-mail service.
