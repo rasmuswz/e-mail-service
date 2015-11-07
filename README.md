@@ -7,7 +7,7 @@ for the first time, (s)he is created.
 
 [Click here](#deploy-test-build-get) - to see how the system is built, tested and deployed.
 
-[About the Author](#about-the-author) - a few words about me and web development.
+[Background](#background) - a few words about me and web development.
 
 
 <img src="docs/images/bitmail.png" alt="BitMail" width="250px"/>Concept and Design
@@ -155,7 +155,13 @@ The ssh-keys needed are avaible in the <pre>demo@dev.bitlab.dk:.ssh/ec2key.pem</
 test development environment. As stated above you can log in with <pre>demo@dev.bitlab.dk</pre> using
 the <b>start-up-passphrase</b> given in submission note.
 
-About the author
+Background
 -------
 
-Hi
+I have been working fulltime with software development in C/C++, Java and C#
+on the windows platform from 2008 - 2011. My prior experience with Web-development dates back 
+to 2005-2007 where he maintained a webpage for the Tutor-association at Aarhus University 
+running on a LAMP-box. 
+
+I had no prior experience with the Go language before this exercise, and as such started at 
+[A Tour of Go](https://tour.golang.org/welcome/1) Saturday October 31st. 
