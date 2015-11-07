@@ -3,7 +3,7 @@ E Mail Service
 ------------------------------------------------------------
 
 <div style="width:100%;">
-<center><img src="docs/images/geomail.png" alt="GeoMail" width="400px"/></center>
+<center><img src="docs/images/geomail.png" alt="GeoMail" width="250px"/></center>
 </div>
 
 [GeoMail Live](https://mail.bitlab.dk) - Try logging in, if a non existing user logs in
