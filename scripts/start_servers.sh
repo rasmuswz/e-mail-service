@@ -3,6 +3,7 @@
 #
 # Start Servers
 #
+ApiDecryptionKey=${2}
 
 function stop() {
     sudo pgrep -f clientapiserver | xargs sudo kill -9
@@ -14,7 +15,7 @@ function stop() {
 function start() {
     sudo screen -dmS "clientapi" goworkspace/bin/clientapiserver dartworkspace/build/web 443
     screen -dmS "backend" goworkspace/bin/backendserver
-    screen -dmS "mtaserver" goworkspace/bin/mtaserver
+    screen -dmS "mtaserver" goworkspace/bin/mtaserver ${ApiDecryptionKey}
 }
 
 case ${1} in

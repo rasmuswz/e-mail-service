@@ -92,7 +92,6 @@ func (ths *ClientAPI) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	q := "/login?username="+username;
 	q += "&password="+password;
-	q += "&location=here"; // TODO(rwz): Get the location
 
 	ths.log.Println("Wuhu we have user: "+username);
 	receiveBackendLoginQuery := "http://localhost" + utilities.RECEIVE_BACKEND_LISTEN_FOR_CLIENT_API + q;

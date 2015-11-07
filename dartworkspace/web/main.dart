@@ -84,19 +84,19 @@ class EmailViewItem {
 class MailWindowController {
   DivElement view;
   DivElement listOfEmails;
-  GeoMailModel model;
+  BitMailModel model;
   AnchorElement selected;
   DivElement emailContent;
   ButtonElement compose;
   ViewController _viewController;
 
-  MailWindowController(this.model,this._viewController) {
+  MailWindowController(this.model, this._viewController) {
     view = querySelector("#mail-window");
     listOfEmails = querySelector("#mail-window-list-of-emails");
     emailContent = querySelector("#email-content");
     view.style.display = 'none';
     compose = querySelector("#mail-window-compose");
-    compose.onClick.listen( (e) => _viewController.composeEmail());
+    compose.onClick.listen((e) => _viewController.composeEmail());
   }
 
   void displayWindow() {
@@ -156,10 +156,10 @@ class ComposeEmailWindowController {
   ButtonElement _send;
   ButtonElement _cancel;
   TextAreaElement _content;
-  GeoMailModel _model;
+  BitMailModel _model;
   ViewController _viewController;
 
-  ComposeEmailWindowController(this._model,this._viewController) {
+  ComposeEmailWindowController(this._model, this._viewController) {
     _view = querySelector("#compose-email-window");
     _recipients = querySelector("#compose-email-window-recipients");
     _subject = querySelector("#compose-email-window-subject");
@@ -218,10 +218,10 @@ class LoginWindowController {
   ButtonElement signInbutton;
   InputElement username;
   PasswordInputElement password;
-  GeoMailModel model;
-  MailWindowController nextControl;
+  BitMailModel model;
+  ViewController viewController;
 
-  LoginWindowController(this.model, this.nextControl) {
+  LoginWindowController(this.model, this.viewController) {
     view = querySelector("#login-window");
     signInbutton = querySelector("#login-window-sign-in-button");
     username = querySelector("#login-window-username");
@@ -229,13 +229,13 @@ class LoginWindowController {
     view.style.display = 'block';
 
     signInbutton.onClick.listen((e) {
-      model.logIn(username.value, password.value).then((ok) {
-        if (ok) {
-          this.hideWindow();
-          nextControl.displayWindow();
-        } else {
-        }
-      });
+      var ok = model.logIn(username.value, password.value);
+      if (ok) {
+        this.hideWindow();
+        viewController.browseEmails();
+      } else {
+        viewController.setSystemMessage("Login failed");
+      }
     });
   }
 
@@ -251,7 +251,7 @@ class LoginWindowController {
 class SignOutController {
   ButtonElement view;
   MailWindowController mailView;
-  GeoMailModel model;
+  BitMailModel model;
   LoginWindowController loginView;
 
   SignOutController(this.model, this.mailView, this.loginView) {
@@ -289,7 +289,7 @@ class NoServiceFullScreenErrorMessageController {
 class GeoMailingListItem {
   String name;
   AnchorElement item;
-  GeoMailModel model;
+  BitMailModel model;
   int count;
 
   GeoMailingListItem(this.name, this.model) {
@@ -317,7 +317,7 @@ class GeoMailingListItem {
 
 class LocationMalingListController {
   DivElement mailingList;
-  GeoMailModel model;
+  BitMailModel model;
 
   LocationMalingListController(this.model) {
     this.mailingList = querySelector("#geo-mailing-listts");
@@ -336,17 +336,22 @@ class ViewController {
   SystemMessageController systemMessages;
   ComposeEmailWindowController composerWindow;
 
-  GeoMailModel model;
+  BitMailModel model;
 
   ViewController(this.model) {
-    this.mailWindow = new MailWindowController(model,this);
-    this.loginWindow = new LoginWindowController(model, mailWindow);
+    this.mailWindow = new MailWindowController(model, this);
+    this.loginWindow = new LoginWindowController(model, this);
     this.mboxController = new MailBoxSelectController();
     this.signOut = new SignOutController(model, mailWindow, loginWindow);
     this.completeErrorMessage = new NoServiceFullScreenErrorMessageController();
     this.systemMessages = new SystemMessageController();
-    this.composerWindow = new ComposeEmailWindowController(model,this);
+    this.composerWindow = new ComposeEmailWindowController(model, this);
     model.setView(this);
+  }
+
+  void browseEmails() {
+    mailWindow.displayWindow();
+    composerWindow.hide();
   }
 
   void composeEmail() {
@@ -387,7 +392,7 @@ class ViewController {
   }
 }
 
-void displayVersionString(GeoMailModel model) {
+void displayVersionString(BitMailModel model) {
   querySelector("#version").innerHtml =
   "You are watching Geo Mail version <font color=\"red\">" +
   model.getVersion() +
@@ -402,7 +407,7 @@ void displayVersionString(GeoMailModel model) {
  */
 main() {
   ClientAPI conn = new ClientAPI("/go.api");
-  GeoMailModel model = new GeoMailModel(conn);
+  BitMailModel model = new BitMailModel(conn);
   ViewController view = new ViewController(model);
   displayVersionString(model);
   view.display();

@@ -108,23 +108,6 @@ class ClientAPI {
     this.authorization = basicAuth;
   }
 
-  List<GeoList> getGeoLists(String sessionId) {
-    List<GeoList> result = [];
-    QueryResponse response = _GetQuery("/geolist", "", {"SessionId": sessionId});
-    if (response.OK == false) {
-      return null;
-    }
-
-    List<Map<String, String>> decoded = JSON.decode(response.Text);
-
-    decoded.forEach((geo) {
-      result.add(GeoItem.NewFromMap(geo));
-    });
-
-    return result;
-
-  }
-
   /**
    * Register {connectionListener} to be invoked upon
    * connection state change.
@@ -136,9 +119,8 @@ class ClientAPI {
   /**
    * Check whether given credentials will work
    */
-  String doLogin(String basicAuth, String location) {
-    String q = "?location="+location;
-    QueryResponse response = _GetQuery(_path + "/login"+q, "", {"Authorization": "Basic " + basicAuth});
+  String doLogin(String basicAuth) {
+    QueryResponse response = _GetQuery(_path + "/login", "", {"Authorization": "Basic " + basicAuth});
     if (response.OK) {
       return response.Text;
     }
