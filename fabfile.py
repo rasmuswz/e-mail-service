@@ -165,7 +165,9 @@ def make_go_path(goWorkspaceDir):
 def sync_with_git():
     local("git pull");
     local("git commit -am \"Deploying standby\" || true ");
-    local("git push");
+    answer=prompt("Are you a committer @github.com/rasmuswl/e-mail-service [y/N]")
+    if (answer == "y"):
+        local("git push");
 
 def start_service_cmd(sesName,exe,root,port,logFile):
     return "screen -dmS "+sesName+" sh -c '"+exe+" "+root+" "+port+" >"+logFile+" 2>&1'";
