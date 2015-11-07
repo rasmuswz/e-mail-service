@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"encoding/json"
 	"bytes"
+	"log"
 )
 
 
 func forwardToReceiver(mail model.Email) {
 
+	log.Println("Received email for delivery, forwarding it to Receive Backend");
 
 	jemail := model.EmailFromJSon{ Headers: mail.GetHeaders(),
 									   Content: mail.GetContent()};
@@ -21,11 +23,12 @@ func forwardToReceiver(mail model.Email) {
 		return;
 	}
 
-	response,err := http.Post(utilities.RECEIVE_BACKEND_LISTENS_FOR_MTA,
-			                  "text/json", bytes.NewReader(serJemail));
+	var url = "http://localhost"+utilities.RECEIVE_BACKEND_LISTENS_FOR_MTA+"/newmail";
+	log.Println("Contacting receive back end at: "+url);
+	response,err := http.Post(url,"text/json", bytes.NewReader(serJemail));
 
 	if err != nil {
-		configurationError("Could not connect to receive back-end.");
+		configurationError("Could not connect to receive back-end."+err.Error());
 	} else {
 		fmt.Println(response);
 	}

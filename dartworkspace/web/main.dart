@@ -87,12 +87,16 @@ class MailWindowController {
   GeoMailModel model;
   AnchorElement selected;
   DivElement emailContent;
+  ButtonElement compose;
+  ViewController _viewController;
 
-  MailWindowController(this.model) {
+  MailWindowController(this.model,this._viewController) {
     view = querySelector("#mail-window");
     listOfEmails = querySelector("#mail-window-list-of-emails");
     emailContent = querySelector("#email-content");
     view.style.display = 'none';
+    compose = querySelector("#mail-window-compose");
+    compose.onClick.listen( (e) => _viewController.composeEmail());
   }
 
   void displayWindow() {
@@ -120,6 +124,7 @@ class MailWindowController {
 
 class SystemMessageController {
   Element msg;
+  Timer current;
 
   SystemMessageController() {
     this.msg = querySelector("#system-message");
@@ -128,8 +133,13 @@ class SystemMessageController {
   void display(String message) {
     msg.innerHtml = message;
     msg.style.display = 'block';
-    new Timer(new Duration(seconds: 2), () {
+    Timer current = this.current;
+    if (current != null) {
+      current.cancel();
+    }
+    current = new Timer(new Duration(seconds: 2), () {
       this.hide();
+      this.current = null;
     });
   }
 
@@ -137,6 +147,71 @@ class SystemMessageController {
     msg.style.display = 'none';
   }
 }
+
+class ComposeEmailWindowController {
+
+  DivElement _view;
+  InputElement _recipients;
+  InputElement _subject;
+  ButtonElement _send;
+  ButtonElement _cancel;
+  TextAreaElement _content;
+  GeoMailModel _model;
+  ViewController _viewController;
+
+  ComposeEmailWindowController(this._model,this._viewController) {
+    _view = querySelector("#compose-email-window");
+    _recipients = querySelector("#compose-email-window-recipients");
+    _subject = querySelector("#compose-email-window-subject");
+    _send = querySelector("#compose-email-window-send");
+    _cancel = querySelector("#compose-email-window-cancel");
+    _content = querySelector("#compose-email-window-content");
+
+    _cancel.onClick.listen((e) => this._handleCancelClick());
+    _send.onClick.listen((e) => this._handleSendClick());
+  }
+
+  void _reset() {
+    _recipients.value = "";
+    _subject.value = "";
+    _content.value = "";
+  }
+
+  void _handleCancelClick() {
+    this.hide();
+    this._reset();
+    _viewController.display();
+  }
+
+  void _handleSendClick() {
+    Email mail = new Email.WithModel(_model, this.Recipients, this.Subject);
+    mail.setContent(this._content.value);
+    if (_model.sendEmail(mail) == true) {
+      _viewController.setSystemMessage("Sending email ok");
+    } else {
+      _viewController.setSystemMessage("Failed to sent message");
+    }
+    this.hide();
+    this._reset();
+    _viewController.display();
+  }
+
+  void hide() {
+    _view.style.display = 'none';
+  }
+
+  void display() {
+    _view.style.display = 'block';
+  }
+
+  get Content => this._content.value;
+
+  get Recipients => this._recipients.value;
+
+  get Subject => this._subject.value;
+
+}
+
 
 class LoginWindowController {
   DivElement view;
@@ -173,9 +248,7 @@ class LoginWindowController {
   }
 }
 
-class
-
-SignOutController {
+class SignOutController {
   ButtonElement view;
   MailWindowController mailView;
   GeoMailModel model;
@@ -261,17 +334,24 @@ class ViewController {
   SignOutController signOut;
   NoServiceFullScreenErrorMessageController completeErrorMessage;
   SystemMessageController systemMessages;
+  ComposeEmailWindowController composerWindow;
 
   GeoMailModel model;
 
   ViewController(this.model) {
-    this.mailWindow = new MailWindowController(model);
+    this.mailWindow = new MailWindowController(model,this);
     this.loginWindow = new LoginWindowController(model, mailWindow);
     this.mboxController = new MailBoxSelectController();
     this.signOut = new SignOutController(model, mailWindow, loginWindow);
     this.completeErrorMessage = new NoServiceFullScreenErrorMessageController();
     this.systemMessages = new SystemMessageController();
+    this.composerWindow = new ComposeEmailWindowController(model,this);
     model.setView(this);
+  }
+
+  void composeEmail() {
+    mailWindow.hideWindow();
+    composerWindow.display();
   }
 
   void setMailBoxes(List<String> mboxNames) {

@@ -20,35 +20,6 @@
     <link rel="stylesheet" href="bootstrap.css">
     <script src="js/jquery.min.js"></script>
     <script src="js/bootstrap.js"></script>
-
-    <!-- Site global scripts -->
-    <script language="JavaScript1.5">
-
-        <!--
-
-
-        -->
-        function showPosition(position) {
-            var e = document.getElementById('geolist');
-            e.innerHTML="<b>Your Location:</b>La:"+position.coords.latitude+",Lo:"+position.coords.longitude + e.innerHTML;
-        }
-
-        function getLocation() {
-           if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(showPosition);
-           } else {
-               var e = document.getElementById('geolist');
-               e.innerHTML = "No position";
-           }
-        }
-
-
-
-
-
-
-    </script>
-
 </head>
 
 <body onload="" id="body">
@@ -64,6 +35,23 @@
     </div>
 </div>
 
+<div class="container-fluid" id="compose-email-window" style="display: none;">
+    <div class="row">
+        <label for="compose-email-window-recipients">Recipients:</label>
+        <input type="text" class="form-control col-md-2 col-offset-1" id="compose-email-window-recipients"/>
+    </div>
+    <div class="row">
+        <label for="compose-email-window-subject">Subject:</label>
+        <input type="text" class="form-control col-md-4" id="compose-email-window-subject"/>
+    </div>
+    <div class="row">
+        <input type="submit" class="btn btn-default col-md-1" id="compose-email-window-send" value="Send"/>
+        <input type="submit" class="btn btn-default col-md-1" id="compose-email-window-cancel" value="Cancel"/>
+    </div>
+    <div class="row">
+        <textarea class="form-control col-md-4 centered well" id="compose-email-window-content" style="min-height: 400px;"></textarea>
+    </div>
+</div>
 
 <div class="container-fluid" id="login-window">
     <div class="row">
@@ -107,7 +95,7 @@
                         </ul>
                     </div>
 
-                    <div class="btn btn-default dropdown-toggle col-md-6 col-md-offset-3">
+                    <div class="btn btn-default dropdown-toggle col-md-6 col-md-offset-3" id="mail-window-compose">
                         Compose
                     </div>
                 </div>
@@ -154,8 +142,12 @@
     </div>
 </div>
 
-<center><small style="color: red;" id="system-message"></small></center>
-<center><small id="version">Text</small></center>
+<center>
+    <small style="color: red;" id="system-message"></small>
+</center>
+<center>
+    <small id="version">Text</small>
+</center>
 <script type="application/dart" src="main.dart"></script>
 <script src="packages/browser/dart.js"></script>
 

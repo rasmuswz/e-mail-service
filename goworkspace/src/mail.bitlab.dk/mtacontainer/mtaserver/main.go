@@ -18,13 +18,15 @@ import (
 	"log"
 	"net/http"
 	"encoding/json"
+
+	"io/ioutil"
 )
 
 
 
 func handleErrorFromMtaContainer(log *log.Logger,
-								 container mtacontainer.MTAContainer,
-								 scheduler mtacontainer.Scheduler) {
+container mtacontainer.MTAContainer,
+scheduler mtacontainer.Scheduler) {
 	for {
 		var e, ok = <-container.GetEvent();
 
@@ -59,7 +61,7 @@ func handleErrorFromMtaContainer(log *log.Logger,
 		}
 
 
-		log.Println(e.GetError().Error());
+		log.Println("Event: "+e.GetError().Error());
 	}
 
 }
@@ -78,18 +80,31 @@ func listenForSendBackEnd(container mtacontainer.MTAContainer) {
 
 	var mux = http.NewServeMux();
 	mux.HandleFunc("/sendmail", func(w http.ResponseWriter, r *http.Request) {
-		var jDec = json.NewDecoder(r.Body);
-		var jemail = model.EmailFromJSon{}
-		err := jDec.Decode(&jemail);
-		if err != nil {
-			println("Server Failed to deserialise stream: "+err.Error());
-		} else {
-			container.GetOutgoing() <- model.NewEmailFromJSon(&jemail);
+		defer r.Body.Close();
+
+		data, dataErr := ioutil.ReadAll(r.Body);
+		if dataErr != nil {
+			log.Println("Error: Could not deserialise data.");
+			http.Error(w, dataErr.Error(), http.StatusInternalServerError);
+			return;
 		}
-		r.Body.Close();
+
+		var jemail = model.EmailFromJSon{};
+
+
+		err := json.Unmarshal(data, &jemail);
+		if err != nil {
+			log.Println("Error:\n" + err.Error() + " Could not deserialise email data:\n" + string(data));
+			http.Error(w, "Error: Could not deserialise email data", http.StatusInternalServerError);
+			return;
+		}
+
+
+		container.GetOutgoing() <- model.NewEmailFromJSon(&jemail);
+
 	});
 
-	http.ListenAndServe(utilities.MTA_LISTENS_FOR_SEND_BACKEND,mux);
+	http.ListenAndServe(utilities.MTA_LISTENS_FOR_SEND_BACKEND, mux);
 
 }
 
@@ -112,7 +127,7 @@ func configurationError(reason string) {
 	println("CONFIGURATION ERROR");
 	println("The System cannot continue for the following reason: ");
 	println(reason);
-	println("Please fix this problem and re-execute "+os.Args[0]);
+	println("Please fix this problem and re-execute " + os.Args[0]);
 
 	os.Exit(-1);
 
@@ -125,24 +140,22 @@ func main() {
 	//
 	utilities.PrintGreeting(os.Stdout);
 
-
 	//
 	// Initialize logger for stdout for this mtaserver.
 	//
 	log := utilities.GetLogger("mtaserver");
 	log.Print("Initial logger created, hi Log ");
 
-
 	//
 	// Start Container (ask for passphrase if necessary)
 	//
 	// var container,scheduler = GetProductionMTAContainer();
-	var container,scheduler = GetLoopBackContainer();
+	var container, scheduler = GetLoopBackContainer();
 
 	//
 	// Error handling
 	//
-	go handleErrorFromMtaContainer(log,container,scheduler);
+	go handleErrorFromMtaContainer(log, container, scheduler);
 
 	//
 	// Forward incoming e-mail to Receiver Back-End

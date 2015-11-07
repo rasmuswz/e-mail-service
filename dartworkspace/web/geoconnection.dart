@@ -15,6 +15,40 @@ class QueryResponse {
   }
 }
 
+QueryResponse PostQuery(String path, String data, Map<String, String> headers) {
+  // open Ajax
+  HttpRequest req = new HttpRequest();
+  req.open("POST", path, async: false);
+
+  // Set custom headers
+  if (headers != null) {
+    headers.forEach((key, value) {
+      print("setting headers["+key+"]="+value);
+      req.setRequestHeader(key, value);
+    });
+  }
+
+  // send request synchronously
+  try {
+    print("Sending data " + data);
+    req.send(data);
+  } catch (exception) {
+    return new QueryResponse.Fail("Exception: ${exception.toString()}");
+  }
+
+  // check if everything is fine.
+  if (req.status == 200) {
+    print("ResponseText:"+req.responseText);
+    return new QueryResponse.Ok(req.responseText);
+  } else {
+    // not fine, write error to browser JS-console.
+    print("StatusText:"+req.statusText);
+    return new QueryResponse.Fail(req.statusText);
+  }
+
+
+}
+
 QueryResponse GetQuery(String path, String data, Map<String, String> headers) {
 
   // open Ajax
@@ -24,25 +58,29 @@ QueryResponse GetQuery(String path, String data, Map<String, String> headers) {
   // Set custom headers
   if (headers != null) {
     headers.forEach((key, value) {
+      print("setting headers["+key+"]="+value);
       req.setRequestHeader(key, value);
     });
   }
 
   // send request synchronously
   try {
+    print("Sending data" + data);
     req.send(data);
   } catch (exception) {
-    return null;
+    return new QueryResponse.Fail("Exception: ${exception.toString()}");
   }
 
   // check if everything is fine.
   if (req.status == 200) {
+    print("ResponseText:"+req.responseText);
     return new QueryResponse.Ok(req.responseText);
   } else {
     // not fine, write error to browser JS-console.
-    print(req.statusText);
+    print("StatusText:"+req.statusText);
     return new QueryResponse.Fail(req.statusText);
   }
+
 }
 
 typedef ConnectionListener(bool s);
@@ -131,13 +169,31 @@ class ClientAPI {
   }
 
 
+  List<Email> queryForMail(int offset, int count, String sessionId ) {
+
+    String jsRequest = "{index: ${offset}, length: ${count}}";
+
+    QueryResponse response = GetQuery(_path+"/getmail",jsRequest,{"SessionId": sessionId});
+
+    if (response.OK) {
+    print("Response to getmail \""+response.Text+"\"");
+      List<Map<String,String>> mails = JSON.decode(response.Text);
+      return [];
+    } else {
+      return [];
+    }
+
+  }
+
   /**
    * Send an e-mail for delivery
    */
   QueryResponse SendAnEmail(Email email, String sessionId) {
-    Sring jsonString = JSON.encode(email.toMap());
-    QueryResponse response = GetQuery(_path + "/sendmail", jsonString, {"sessionID": sessionId});
-    return response.Ok;
+    String jsonString = email.toJson();
+    print("Sending data: "+jsonString);
+    QueryResponse response = PostQuery(_path + "/sendmail", jsonString,
+          {"sessionID": sessionId}  );
+    return response;
   }
 
   get Alive => _alive;

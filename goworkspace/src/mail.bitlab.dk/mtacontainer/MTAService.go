@@ -15,6 +15,8 @@ import (
 	"mail.bitlab.dk/utilities"
 	"log"
 	"encoding/json"
+	"io/ioutil"
+	"errors"
 )
 
 type EventKind uint32;
@@ -293,6 +295,7 @@ func New(scheduler Scheduler) MTAContainer {
 	go func() {
 		var email = <-result.outgoing;
 		provider := result.scheduler.schedule();
+		log.Println("Scheduling mail for sending on "+provider.GetName());
 		provider.GetOutgoing() <- email;
 	}();
 
@@ -301,12 +304,25 @@ func New(scheduler Scheduler) MTAContainer {
 
 func (ths *DefaultMTAContainer) receiveMailToBeSentFromSendBackEnd(w http.ResponseWriter, r *http.Request) {
 
+	defer r.Body.Close();
 	var mail model.EmailFromJSon = model.EmailFromJSon{};
-	var jDec = json.NewDecoder(r.Body);
-	jDec.Decode(&mail);
+	var data, dataErr = ioutil.ReadAll(r.Body);
+	if dataErr != nil {
+		ths.events <- NewEvent(EK_WARNING,dataErr,ths);
+		http.Error(w,dataErr.Error(),http.StatusInternalServerError);
+		return ;
+	}
+
+	mailErr := json.Unmarshal(data,&mail);
+	if mailErr != nil {
+		ths.events <- NewEvent(EK_WARNING,errors.New("Malformed email"),ths);
+		http.Error(w,"Malformed email cannot send",http.StatusBadRequest);
+		return;
+	}
 
 	var email = model.NewEmailFromJSon(&mail);
 
+	ths.events <- NewEvent(EK_OK,errors.New("Forwarding Email to the MTAs."),ths);
 
 	ths.GetOutgoing() <- email;
 

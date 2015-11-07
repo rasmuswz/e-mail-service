@@ -22,6 +22,8 @@ import (
 	"time"
 	"os"
 	"mail.bitlab.dk/utilities/go"
+	"io/ioutil"
+	"bytes"
 )
 
 const (
@@ -36,7 +38,6 @@ const (
 type ReceiveBackEnd struct {
 	store    JSonStore;
 	incoming chan model.Email;
-	mtacontainer.HealthService;
 	events   chan mtacontainer.Event;
 	cmd      chan int;
 	log      *log.Logger;
@@ -56,6 +57,12 @@ func NewReceiveBackend(store JSonStore) *ReceiveBackEnd {
 	return res;
 }
 
+
+func (ths *ReceiveBackEnd) GetEvent() chan mtacontainer.Event {
+	return ths.events;
+}
+
+
 func (ths *ReceiveBackEnd) Stop() {
 	ths.cmd <- CMD_SHUTDOWN;
 }
@@ -69,7 +76,7 @@ func (ths *ReceiveBackEnd) Stop() {
 // ---------------------------------------------------------
 func (ths *ReceiveBackEnd) ListenForClientApi() {
 	var mux = http.NewServeMux();
-	mux.HandleFunc("/getmail", ths.serviceClientApi);
+	mux.HandleFunc("/getmail", ths.GetMail);
 	mux.HandleFunc("/login", ths.handleLogin);
 	mux.HandleFunc("/logout", ths.handleLogout);
 	mux.HandleFunc("/", ths.handleError);
@@ -79,10 +86,10 @@ func (ths *ReceiveBackEnd) ListenForClientApi() {
 	}
 }
 // Client API error request handler
-func (ths *ReceiveBackEnd) handleError(w http.ResponseWriter, r * http.Request) {
+func (ths *ReceiveBackEnd) handleError(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close();
 	ths.log.Println("Error request arrived...");
-	http.Error(w,"No such service",http.StatusBadGateway);
+	http.Error(w, "No such service", http.StatusBadGateway);
 }
 
 // Client API logout request handler
@@ -99,7 +106,7 @@ func (ths *ReceiveBackEnd) handleLogout(w http.ResponseWriter, r *http.Request) 
 func (ths *ReceiveBackEnd) createSession(username, location string) string {
 	var now = time.Now();
 	var sessionId = utilities.HashStringToHex(now.String() + username + location);
-	ths.log.Println("Created session id for user: "+username+"\n"+sessionId);
+	ths.log.Println("Created session id for user: " + username + "\n" + sessionId);
 	ths.store.PutJSonBlob(map[string]string{"sessionId": sessionId, "username": username, "location": location});
 	return sessionId;
 }
@@ -113,13 +120,13 @@ func (ths *ReceiveBackEnd) handleLogin(w http.ResponseWriter, r *http.Request) {
 	location := r.URL.Query().Get("location");
 
 	if (username == "" || password == "" || location == "") {
-		http.Error(w,"username, password or location is not set", http.StatusBadRequest);
+		http.Error(w, "username, password or location is not set", http.StatusBadRequest);
 		return;
 	}
 
 	ths.log.Println("Welcome to user " + username + " at " + location);
 
-	users :=  ths.store.GetJSonBlobs(UserBlobNew(username,password).ToJSonMap());
+	users := ths.store.GetJSonBlobs(UserBlobNew(username, password).ToJSonMap());
 
 	ths.log.Println("We found " + goh.IntToStr(len(users)) + " entries with this user in our database");
 	//
@@ -128,17 +135,18 @@ func (ths *ReceiveBackEnd) handleLogin(w http.ResponseWriter, r *http.Request) {
 	//
 	if (len(users) == 0) {
 		ths.log.Println("No user with that password and username, is the any user called " + username + "?")
-		users = ths.store.GetJSonBlobs(UserBlobNew(username,password).ToJSonMap());
+		users = ths.store.GetJSonBlobs(UserBlobNew(username, "").ToJSonMap());
 		var sessionId = ths.createSession(username, location);
-		userBlob := UserBlobNewFull(username,password,location,sessionId);
+		userBlob := UserBlobNewFull(username, password, location, sessionId);
 		if len(users) == 0 {
 			ths.log.Println("No, lets create " + username);
 			ths.store.PutJSonBlob(userBlob.ToJSonMap());
+			ths.store.PutJSonBlob(NewMBox(username, model.MBOX_NAME_INBOX).ToJSonMap());
 			w.Write([]byte(sessionId));
-			ths.log.Println("Just sent "+goh.IntToStr(len(sessionId))+" bytes across");
+			ths.log.Println("Just sent " + goh.IntToStr(len(sessionId)) + " bytes across");
 			return; // success
 		} else {
-			http.Error(w,"Access Denied",http.StatusForbidden);
+			http.Error(w, "Access Denied", http.StatusForbidden);
 		}
 		return;
 	}
@@ -149,9 +157,9 @@ func (ths *ReceiveBackEnd) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if (len(users) == 1) {
 		var sessionId = ths.createSession(username, location);
 		w.Write([]byte(sessionId));
-		ths.store.UpdJSonBlob(UserBlobNew(username,password).ToJSonMap(),UserBlobNewFull(username,password,location,sessionId).ToJSonMap());
+		ths.store.UpdJSonBlob(UserBlobNew(username, password).ToJSonMap(), UserBlobNewFull(username, password, location, sessionId).ToJSonMap());
 	} else {
-		http.Error(w,"Access Denied",http.StatusForbidden);
+		http.Error(w, "Access Denied", http.StatusForbidden);
 
 	}
 	r.Body.Close();
@@ -180,11 +188,15 @@ func CheckAuthorizedUser(store JSonStore, req *http.Request) (string, bool) {
 	}
 }
 
-func (ths *ReceiveBackEnd) serviceClientApi(w http.ResponseWriter, r *http.Request) {
+// Service API
+func (ths *ReceiveBackEnd) GetMail(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close();
 	type GetMailRequest struct {
 		index  int;
 		length int;
 	}
+
+	ths.log.Println("Client is asking for e-mails");
 
 	var username, ok = CheckAuthorizedUser(ths.store, r);
 	if ok == false {
@@ -192,37 +204,46 @@ func (ths *ReceiveBackEnd) serviceClientApi(w http.ResponseWriter, r *http.Reque
 		return;
 	}
 
-	var jDec = json.NewDecoder(r.Body);
-	var ask GetMailRequest = GetMailRequest{};
-
-	emailErr := jDec.Decode(&ask);
-	if emailErr != nil {
-		log.Println("[Receiver BackEnd] Didn't understand e-mail from ClientApi.");
+	data, dataErr := ioutil.ReadAll(r.Body);
+	if dataErr != nil {
+		http.Error(w, "Died reading data", http.StatusInternalServerError);
 		return;
 	}
 
-	var query = make(map[string]string);
-	query["username"] = username;
+	var ask GetMailRequest = GetMailRequest{};
+	askErr := json.Unmarshal(data, &ask);
+	if askErr != nil {
+		ths.log.Println("Could not deserialise request." + askErr.Error());
+		http.Error(w, "Bad request", http.StatusInternalServerError);
+		return;
+	}
 
-	var jEnc = json.NewEncoder(w);
+
+	query := NewEmailBlobForFindingMBox(NewMBox(username, model.MBOX_NAME_INBOX).UniqueID).ToJSonMap();
+	buffer := bytes.NewBuffer(nil);
+
+
+	buffer.WriteString("[");
+
 	var emailsForUser []map[string]string = ths.store.GetJSonBlobs(query);
 
 	for i := range emailsForUser {
 		if (i >= ask.index && i < ask.index + ask.length) {
-			var e model.EmailFromJSon = model.EmailFromJSon{};
-			e.Content = emailsForUser[i]["content"];
-			e.Headers = make(map[string]string)
-			for k, v := range emailsForUser[i] {
-				if k != "content" {
-					e.Headers[k] = v;
-				}
-			}
-			err := jEnc.Encode(&e);
-			if err != nil {
-				log.Println("Failed to encode and send e-mail to ClientApi.");
+			blob := NewEmailBlobFromJSonMap(emailsForUser[i]);
+			buffer.WriteString("{\"Headers\":{" +
+			"\"To\":\"" + blob.To + "," +
+			"\"From\":\"" + blob.From + "\","+
+			"\"Subject\":\""+blob.Subject+"\"}"+
+			"\"Content\":\""+blob.Content+"\"}");
+			if (i < ask.index-1) {
+				buffer.WriteString(",");
 			}
 		}
 	}
+	buffer.WriteString("]");
+	println("serialised email: "+buffer.String());
+
+	w.Write(buffer.Bytes());
 
 	log.Println("[Receive Backend] Incoming request from the client API, leaving");
 }
@@ -231,7 +252,8 @@ func (ths *ReceiveBackEnd) ListenForMtaContainer() {
 
 	var mux = http.NewServeMux();
 	mux.HandleFunc("/newmail", ths.receiveMail);
-	var err = http.ListenAndServe("localhost" + utilities.RECEIVE_BACKEND_LISTENS_FOR_MTA, mux);
+	mux.HandleFunc("/", ths.handleError);
+	var err = http.ListenAndServe(utilities.RECEIVE_BACKEND_LISTENS_FOR_MTA, mux);
 	if err != nil {
 		log.Fatalln("[Receiver Backend] Failed to listen for MTA: " + err.Error());
 	}
@@ -239,34 +261,56 @@ func (ths *ReceiveBackEnd) ListenForMtaContainer() {
 }
 
 func (ths *ReceiveBackEnd) receiveMail(w http.ResponseWriter, r *http.Request) {
-	ths.events <- mtacontainer.NewEvent(mtacontainer.EK_OK, errors.New("Incoming e-mail from Mta"));
-	var jDecoder = json.NewDecoder(r.Body);
+	defer r.Body.Close();
+	//ths.events <- mtacontainer.NewEvent(mtacontainer.EK_OK, errors.New("Incoming e-mail from Mta"));
+	ths.log.Println("Incoming e-mail from MTA");
+	var data, dataErr = ioutil.ReadAll(r.Body);
+	if dataErr != nil {
+		log.Println("Error: " + dataErr.Error());
+		ths.events <- mtacontainer.NewEvent(mtacontainer.EK_WARNING, dataErr);
+		http.Error(w, dataErr.Error(), http.StatusInternalServerError);
+		return;
+	}
 	var jemail model.EmailFromJSon;
-	var jemailErr = jDecoder.Decode(&jemail);
+	jemailErr := json.Unmarshal(data, &jemail);
 
 	if (jemailErr != nil) {
-		ths.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, jemailErr);
+		log.Println("Error: " + jemailErr.Error());
+		//ths.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, jemailErr);
+		http.Error(w, jemailErr.Error(), http.StatusInternalServerError);
+		return;
 	} else {
 		var email = model.NewEmailFromJSon(&jemail);
+		log.Println("Delivering mail for database storage.");
 		ths.incoming <- email;
 	}
+}
+
+func getNameFromEmail(emailAddr string) string {
+
+	var parts = strings.Split(emailAddr, "@");
+	return parts[0];
+
 }
 
 func (ths *ReceiveBackEnd) StoreMailsInStore() {
 	for {
 		select {
 		case mail := <-ths.incoming:
+			println("Incoming mail for delivery:");
 			var mailHeaders = mail.GetHeaders();
-			var users = ths.store.GetJSonBlobs(map[string]string{"email": mailHeaders[model.EML_HDR_TO]});
+			var username = getNameFromEmail(mailHeaders[model.EML_HDR_TO]);
+			var users = ths.store.GetJSonBlobs(UserBlobNew(username, "").ToJSonMap());
+
+			if len(users) < 1 {
+				ths.events <- mtacontainer.NewEvent(mtacontainer.EK_WARNING, errors.New("Cannot deliver mail to non-existing user: "));
+				continue;
+			}
+
 			for i := range users {
-				var blob = make(map[string]string);
-				blob["content"] = mail.GetContent();
-				blob["mbox"] = model.MBOX_NAME_INBOX;
-				blob["username"] = users[i]["username"];
-				for k, v := range mail.GetHeaders() {
-					blob[k] = v;
-				}
-				ths.store.PutJSonBlob(blob);
+				log.Println("Delivering mail to " + users[i]["Username"]);
+				blob := NewEmailBlob(NewMBox(username, model.MBOX_NAME_INBOX).UniqueID, mailHeaders[model.EML_HDR_SUBJECT], mailHeaders[model.EML_HDR_TO], mailHeaders[model.EML_HDR_FROM], mail.GetContent());
+				ths.store.PutJSonBlob(blob.ToJSonMap());
 			}
 		case cmd := <-ths.cmd:
 			if (cmd == CMD_SHUTDOWN) {

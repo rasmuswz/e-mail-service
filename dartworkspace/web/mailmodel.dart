@@ -29,6 +29,7 @@ class Email {
   String _subject;
   String _location;
   String _content;
+  GeoMailModel model;
 
   Email.fromMap(Map<String, String> json) {
     this._from = json['from'];
@@ -39,17 +40,25 @@ class Email {
 
   Map<String, String> toMap() {
     Map<String, String> json = new Map<String, String>();
-    json['from'] = this._from;
-    json['to'] = this._to;
-    json['subject'] = this._subject;
-    json['location'] = this._location;
+    String h = JSON.encode({"From": this._from,"To": this._to, "Subject": this._subject, "Location": this._location});
+    print("headers: "+h);
+    json["Headers"] = h;
+    json["Content"] = this._content;
     return json;
   }
 
-  Email(String from, String subject) {
-    this._from = from;
-    this._subject = subject;
+  String toJson() {
+    return """{"Headers":{"From":"${this._from}","Subject":"${this._subject}","To":"${this._to}"},"Content":"${this._content}"}""";
+    //return "{\"Headers\": {\"To\":\""+_to+"\",\"From\":\""+_from+"\":"
+  }
 
+  Email(this._from,this._subject) {
+
+  }
+
+  Email.WithModel(this.model,this._to, this._subject) {
+    this._from = model.Username;
+    this._location = "here";
   }
 
   get From => _from;
@@ -114,6 +123,8 @@ class GeoMailModel {
   List<Future<String>> stateListeners;
   String session;
   ViewController view;
+  String _username;
+
 
   /**
    * With a connection to the ClientAPI-server we
@@ -122,7 +133,10 @@ class GeoMailModel {
   GeoMailModel(ClientAPI connection) {
     this.connection = connection;
     this.stateListeners = [];
+    _username = "";
   }
+
+  get Username => _username;
 
   /**
    * Allow the view controllers to get notified
@@ -172,6 +186,7 @@ class GeoMailModel {
       if (sessionId != null) {
         this.basicAuth = auth;
         this.session = sessionId;
+        this._username = username;
         c.complete(true);
       } else {
         view.setSystemMessage("Login failed");
@@ -192,15 +207,22 @@ class GeoMailModel {
    */
   List<Email> loadEmailList(int offset, int count) {
     List<Email> mails = [];
+    /*
     mails.add(new Email("geomail@mail.bitlab.dk", "Hi and welcome to Geo-mail"));
     mails[0].setContent("Hi,\nTry out the geo-mailing lists in the bottom of the "+
     "page, it will allow you to send e-mails to everyone logged into GeoMail in your"+
     " local area.\n\nThanks\nThe GeoMail Team");
+*/
 
+    mails = connection.queryForMail(offset,count, session);
 
     return mails;
   }
 
+
+  bool sendEmail(Email mail) {
+    return connection.SendAnEmail(mail,this.session).OK;
+  }
 
   /**
    * Get the current Geo Lists.

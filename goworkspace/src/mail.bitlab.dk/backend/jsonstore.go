@@ -10,6 +10,7 @@ import (
 	jsonPackage "encoding/json"
 	"strings"
 //	"net/http"
+	"encoding/base64"
 )
 
 
@@ -108,14 +109,26 @@ func UserBlobNewFromJSonStr(jsonBlob string) *UserBlob {
 //
 // ------------------------------------------------------------------
 type MBoxBlob struct {
+	UniqueID string;
 	Name     string;
 	Username string; // mail box owner
+}
+
+func MBoxUniqueName(username, boxname string) string {
+	return base64.StdEncoding.EncodeToString([]byte(username+":"+boxname));
+}
+
+func NewMBox(username string, boxname string) *MBoxBlob{
+	result := new(MBoxBlob);
+	result.UniqueID = MBoxUniqueName(username,boxname);
+	return result;
 }
 
 func (ths *MBoxBlob) ToJSonMap() map[string]string {
 	result := make(map[string]string, 2);
 	result["Name"] = ths.Name;
 	result["Username"] = ths.Username;
+	result["UniqueID"] = ths.UniqueID;
 	return result;
 }
 
@@ -133,7 +146,7 @@ func MBoxBlobFromMap(m map[string]string) *MBoxBlob {
 //
 // ------------------------------------------------------------------
 type EmailBlob struct {
-	Mbox    string;
+	Mbox    string; // MBoxBlob.UniqueID.
 	Subject string;
 	To      string;
 	From    string;
@@ -152,6 +165,30 @@ func (ths *EmailBlob) ToJSonMap() map[string]string {
 	return result;
 }
 
+func NewEmailBlobFromJSonMap(m map[string]string ) *EmailBlob{
+	result := new(EmailBlob);
+	result.Mbox = m["MBox"];
+	result.Subject = m["Subject"];
+	result.To = m["To"];
+	result.From = m["From"];
+	result.Content = m["Content"];
+	result.Uid = m["Uid"];
+	return result;
+}
+
+func NewEmailBlobForFindingMBox(mbox string) *EmailBlob{
+	return NewEmailBlob(mbox,"","","","");
+}
+
+func NewEmailBlob(mbox, subject, to, from,content string ) *EmailBlob {
+	result := new(EmailBlob);
+	result.Mbox = mbox;
+	result.Subject = subject;
+	result.To = to;
+	result.From = from;
+	result.Content = content;
+	return result;
+}
 
 func EmailBlobFromJSonMap(m map[string]string) *EmailBlob {
 	result := new(EmailBlob);
@@ -192,9 +229,11 @@ func checkMatch(db map[string]string, m map[string]string) bool {
 			return false
 		};
 
-		if (strings.Compare(dbval, v) != 0) {
-			println("Values for key "+k+" mismatch: asked for "+v+"!="+dbval);
-			return false;
+		if (strings.Compare("",v) != 0) {
+			if (strings.Compare(dbval, v) != 0) {
+				println("Values for key " + k + " mismatch: asked for " + v + "!=" + dbval);
+				return false;
+			}
 		}
 	}
 

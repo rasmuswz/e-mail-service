@@ -64,6 +64,13 @@ func NewEmail(content string, headers ... string) Email {
 	return result;
 }
 
+func NewMailWithMap(content string, headers map[string]string) Email {
+	var result = new(EmailImpl);
+	result.content = content;
+	result.header = headers;
+	return result;
+}
+
 
 func NewEmailFromJSon(mail *EmailFromJSon) Email {
 	var result = new(EmailImpl);

@@ -21,8 +21,8 @@ import (
 type LoopBackProvider struct {
 	incoming chan model.Email;
 	outgoing chan model.Email;
-	events chan mtacontainer.Event;
-	command chan commandprotocol.Command;
+	events   chan mtacontainer.Event;
+	command  chan commandprotocol.Command;
 }
 
 
@@ -30,11 +30,11 @@ func (ths *LoopBackProvider) Stop() {
 
 }
 
-func (ths *LoopBackProvider) GetOutgoing() chan model.Email{
+func (ths *LoopBackProvider) GetOutgoing() chan model.Email {
 	return ths.outgoing;
 }
 
-func (ths *LoopBackProvider) GetIncoming() chan model.Email{
+func (ths *LoopBackProvider) GetIncoming() chan model.Email {
 	return ths.incoming;
 }
 
@@ -48,12 +48,13 @@ func (ths * LoopBackProvider) GetName() string {
 
 
 
-func New(log * log.Logger) mtacontainer.MTAProvider {
+func New(log *log.Logger) mtacontainer.MTAProvider {
 	var result = new(LoopBackProvider);
 	result.incoming = make(chan model.Email);
 	result.outgoing = make(chan model.Email);
 	result.events = make(chan mtacontainer.Event);
-	log.Println(result.GetName()+ " MTA Going up")
+
+	log.Println(result.GetName() + " MTA Going up")
 	go result.handleOutgoingMessages();
 	return result;
 }
@@ -62,21 +63,22 @@ func New(log * log.Logger) mtacontainer.MTAProvider {
 
 func (ths *LoopBackProvider) handleOutgoingMessages() {
 
-	for{
+	for {
 		select {
 
-		case m := <-ths.incoming:
+		case m := <-ths.outgoing:
 
-		var headers = m.GetHeaders();
-		var temp = headers[model.EML_HDR_FROM];
-		headers[model.EML_HDR_FROM] = headers[model.EML_HDR_TO];
-		headers[model.EML_HDR_TO] = temp;
-			ths.outgoing <- m;
+			ths.events <- mtacontainer.NewEvent(mtacontainer.EK_OK,errors.New("Loop Back MTA Got message"),ths)
+			var headers = m.GetHeaders();
+			var temp = headers[model.EML_HDR_FROM];
+			headers[model.EML_HDR_FROM] = headers[model.EML_HDR_TO];
+			headers[model.EML_HDR_TO] = temp;
+			ths.incoming <- m;
 
 
 		case c := <-ths.command:
 			if c == commandprotocol.CMD_MTA_PROVIDER_SHUTDOWN {
-				ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL,errors.New("Going down, SHUT DOWN Command"),
+				ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, errors.New("Going down, SHUT DOWN Command"),
 					ths);
 				return;
 			}

@@ -14,6 +14,7 @@ import (
 	"encoding/base64"
 	"mail.bitlab.dk/utilities/go"
 	"encoding/hex"
+	"bytes"
 )
 
 type ClientAPI struct {
@@ -137,15 +138,103 @@ func (a *ClientAPI) logoutHandler(w http.ResponseWriter, r *http.Request) {
 
 func (a *ClientAPI) getMboxesHandler(w http.ResponseWriter, r * http.Request) {
 
+	a.log.Println("get mboxes not implemented yet.");
+
+}
+
+func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r * http.Request) {
+
+	defer r.Body.Close();
+
+	a.log.Println("Sending mail");
+
+	rawdata,dataErr := ioutil.ReadAll(r.Body);
+	if dataErr != nil {
+		http.Error(w,"Could not read body of request.",http.StatusBadRequest);
+		return;
+	}
+
+	a.log.Println(goh.IntToStr(len(rawdata)));
+	a.log.Println("Forwarding data to MTA container:\n"+hex.Dump(rawdata));
+
+
+	var request, requestError = http.NewRequest("POST", "http://localhost"+
+		utilities.MTA_LISTENS_FOR_SEND_BACKEND+"/sendmail",bytes.NewBuffer(rawdata));
+	if requestError != nil {
+		http.Error(w,"Could not create request",http.StatusInternalServerError);
+		return;
+	}
+
+	request.Header["Content-Length"] = []string{goh.IntToStr(len(rawdata))};
+
+
+	if requestError != nil {
+		http.Error(w, "Failed to create HttpRequest for MTA Container", http.StatusInternalServerError);
+		a.log.Println("Failed to create HttpRequest for MTA Container:\n"+requestError.Error());
+		return;
+	}
+
+	response, responseErr := http.DefaultClient.Do(request);
+	if responseErr != nil {
+		if response != nil {
+			http.Error(w, responseErr.Error(), response.StatusCode);
+		} else {
+			http.Error(w,responseErr.Error(), http.StatusInternalServerError);
+		}
+		a.log.Println(responseErr.Error())
+		return;
+	}
+
+	if response.StatusCode >= 200 && response.StatusCode < 300 {
+		a.log.Println("Forwarded e-email to MTA Container with success.");
+		a.log.Println(response.Status);
+	}
+}
+
+func (a *ClientAPI) getMailHandler(w http.ResponseWriter, r * http.Request) {
+
+	defer r.Body.Close();
+
+	if len(r.Header["SessionId"]) < 1 {
+		a.log.Println("No access with out an session id")
+		http.Error(w,"Session ID missing access denied.",http.StatusForbidden);
+		return;
+	}
+	ses := r.Header["sessionId"][0];
+
+	req, reqErr := http.NewRequest("GET",utilities.RECEIVE_BACKEND_LISTEN_FOR_CLIENT_API+"/getmail?SessionId="+ses,r.Body);
+	if reqErr != nil {
+		http.Error(w,"Could not create request: "+reqErr.Error(),http.StatusInternalServerError);
+		return;
+	}
+
+	resp,err := http.DefaultClient.Do(req);
+	if err != nil {
+		http.Error(w,err.Error(),http.StatusInternalServerError);
+		return;
+	}
+
+	data, dataReq := ioutil.ReadAll(resp.Body);
+	if dataReq != nil {
+		http.Error(w,"Damn it could not get response from Receiver Back-end",http.StatusInternalServerError);
+		return;
+	}
+
+	log.Println("We have successfully forwardet a list of emails.");
+	w.Write(data);
+	return;
+
 }
 
 func (a *ClientAPI) serve() {
 
 	var mux = http.NewServeMux();
-	mux.HandleFunc("/go.api/alive/", a.alivePingHandler);
+	mux.HandleFunc("/go.api/alive", a.alivePingHandler);
 	mux.HandleFunc("/go.api/login",  a.handleLogin);
 	mux.HandleFunc("/go.api/logout", a.logoutHandler);
 	mux.HandleFunc("/go.api/mboxes", a.getMboxesHandler);
+	mux.HandleFunc("/go.api/sendmail", a.sendMailHandler);
+	mux.HandleFunc("/go.api/getmail", a.getMailHandler);
 
 	mux.HandleFunc("/", a.viewHandler);
 
