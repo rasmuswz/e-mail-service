@@ -308,5 +308,5 @@ function main() {
     echo "to your path."
 }
 
-
+install_dart_sdk
 install_golang_sdk
