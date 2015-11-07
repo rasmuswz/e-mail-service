@@ -75,9 +75,9 @@ To try out the application in practice the domain mail.bitlab.dk has been setup.
 To give an idea how the deployment and build system is setup I invite you to take a tour at the build server. The Startup-password is required to login at the server.
 
 <code>
-ssh ubuntu@dev.bitlab.dk
-cd e-mail-service
-ls 
+ssh ubuntu@dev.bitlab.dk<br/>
+cd e-mail-service<br/>
+ls <br/>
 </code>
 Here you will see this respository checked out. This machine is also setup with SSH-Private keys to allow it to deploy
 new version of the software to mail0.bitlab.dk and mail1.bitlab.dk. Try it:
