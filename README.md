@@ -6,16 +6,16 @@ E Mail Service
 
 
 
-[GeoMail Live](https://mail.bitlab.dk) - Try logging in, if a non existing user logs in
+[GeoMail Live](https://mail.bitlab.dk) - Try logging in. When a new user logs in
 for the first time, (s)he is created.
 
-[Click here](#deploy-test-build-get) - To see how the system is built, tested and deployed.
+[Click here](#deploy-test-build-get) to see how the system is built, tested and deployed.
 
 
 <img src="docs/images/geomail.png" alt="GeoMail" width="250px"/>Concept and Design
 --------------
 This section describes the conceptual idea and the design choices for a scalable 
-and reliable service.
+and reliable e-mail service.
 
 Concept
 ---
@@ -32,14 +32,14 @@ users current location.
 
 <img alt="Dev logo" src="docs/images/devlogo.png" width="80px"/> Design
 ---
-This is a <b>full stack</b> implementation of e-mail service using several sending providers. See the 
+This is a <b>full stack</b> implementation of an e-mail service using several sending providers. See the 
 systems component diagram below. I provide a <b>web-mail front-end</b> with a back-end
 server <b>abstracting any number</b> of MTA-providers like MailGun, Mandrill,
 Amazon SeS and SMTP transports. 
 ![System Components Diagram](docs/SystemComponentDiagram.png "E-mail service - System components Diagram")
 An MTA-container runs with multiple MTA-provider-components inside to 
-offers a <b>unified API</b> for <i>sending</i> and <i>receiving</i> emails. Also, it ensures reliability through 
-fail-over if <i>any</i> MTA-provider should have a fall-out. Wrt. performance it can be optimized by providing a custom instance of the <b>Scheduler</b>-strategy interface; by default we provide an out of the Box Round Robin Scheduler. One could 
+offer a <b>unified API</b> for <i>sending</i> and <i>receiving</i> emails. Also, it ensures reliability through 
+fail-over if any MTA-provider should have a fall-out. Wrt. performance it can be optimized by providing a custom instance of the <b>Scheduler</b>-strategy interface; by default we provide an out of the Box Round Robin Scheduler. One could 
 implement an adaptive scheduling strategy sending e-mails according to performance stats (e.g. slow MTAs gets scheduled less often).
 
 We provide a <b>Custom</b> provider for MailGun that is specialized towards using their comprehensive API
