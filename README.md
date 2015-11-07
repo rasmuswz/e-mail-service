@@ -32,15 +32,14 @@ users current location.
 
 Design
 ---
-This is a full stack implemtation of e-mail service using several sending providers. See the 
+This is a <b>full stack</b> implemtation of e-mail service using several sending providers. See the 
 systems component diagram below. I provide a <b>web-mail front-end</b> with a back-end
 server <b>abstracting any number</b> of MTA-providers like MailGun, Mandrill,
 Amazon SeS and SMTP transports. 
 ![System Components Diagram](docs/SystemComponentDiagram.png "E-mail service - System components Diagram")
-A MTA-container runs with multiple MTA-provider-components inside to 
-offers a <b>unified API</b> for <i>sending</i> and <i>receiving</i> emails. Also, it ensure reliablity through 
-fail-over if ANY MTA-provider should have a fall-out. Wrt. performance it can be optimized by customizing the 
-builtin <b>Scheduler</b>-strategy. We provide a default Round Robin out of the Box scheduling strategy. One could 
+An MTA-container runs with multiple MTA-provider-components inside to 
+offers a <b>unified API</b> for <i>sending</i> and <i>receiving</i> emails. Also, it ensures reliablity through 
+fail-over if <i>any</i> MTA-provider should have a fall-out. Wrt. performance it can be optimized by providing a custom instance of the <b>Scheduler</b>-strategy interface; by default we provide an out of the Box Round Robin Scheduler. One could 
 implement an adaptive scheduling strategy sending e-mails according to performance stats (e.g. slow MTAs gets scheduled less often).
 
 We provide a <b>Custom</b> provider for MailGun that is specialized towards using their comprehensive API
