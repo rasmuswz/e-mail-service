@@ -19,10 +19,17 @@ func (ths * SendBackEnd) Stop() {
 	ths.cmd <- CMD_SHUTDOWN;
 }
 
+// ------------------------------------------------------
+//
+// The ClientAPI connects to send an e-mail, we reads the
+// mail and forwards it to the MTAContainer.
+//
+// ------------------------------------------------------
 func (ths *SendBackEnd) sendmail(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close();
 	var _, ok = CheckAuthorizedUser(ths.store, r);
 	if ok == false {
-		w.Header()["StatusCode"] = []string{strconv.FormatInt(403, 0)};
+		http.Error(w,"Access denied",http.StatusForbidden);
 		return;
 	}
 

@@ -158,5 +158,5 @@ func (ths *AmazonMtaProvider) serviceSendingEmails() {
 
 
 func (ths * AmazonMtaProvider) serviceReceivingEmails() {
-
+	// TODO(rwz): Implement listening for incoming e-mail delivered by Amazon SeS.
 }
