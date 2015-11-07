@@ -9,6 +9,7 @@
 from fabric.contrib.project import rsync_project
 from fabric.contrib.files import exists
 from fabric.api import *
+from getpass import getpass
 import os
 import subprocess
 
@@ -205,8 +206,8 @@ def start_mta_server(taggedDir):
 
 def start_servers(taggedDir):
     with cd(taggedDir):
-        key=prompt("Api Decryption Key (the start-up passphrase)");
-        run("scripts/start_servers.sh start "+key);
+        key=getpass("Api Decryption Key (the start-up passphrase): ");
+        run("scripts/start_servers.sh restart "+key);
 
 def write_tag_in_file(filename,tag, destination):
     f = open(filename,"w");

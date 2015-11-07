@@ -25,10 +25,11 @@ case ${1} in
     stop)
 	stop
 	;;
-
-    *)
+    restart)
 	stop
 	start;
 	;;
+	*)
+	echo "Start script supports start, stop, and restart."
 esac
 
