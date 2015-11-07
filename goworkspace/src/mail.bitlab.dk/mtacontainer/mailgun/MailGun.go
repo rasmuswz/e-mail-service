@@ -171,7 +171,7 @@ func (mgp *MailGunProvider) mgSend(m model.Email) {
 			mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, err);
 			mgp.log.Println("The MailGun Provider is considered Down.");
 			mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT,errors.New("MailGun is down for sending"),m);
-			for _,e := range mgp.out {
+			for e := range mgp.out {
 				var ee model.Email = e;
 				mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT,errors.New("MailGun is down for sending"),ee);
 			}
