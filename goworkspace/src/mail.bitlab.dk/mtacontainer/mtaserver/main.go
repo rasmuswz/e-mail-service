@@ -23,9 +23,12 @@ import (
 )
 
 
-
-func handleErrorFromMtaContainer(log *log.Logger,
-container mtacontainer.MTAContainer,
+// ---------------------------------------------------------
+//
+// Go Routine to react on error from the MTA Container
+//
+// ---------------------------------------------------------
+func handleErrorFromMtaContainer(log *log.Logger, container mtacontainer.MTAContainer,
 scheduler mtacontainer.Scheduler) {
 	for {
 		var e, ok = <-container.GetEvent();
@@ -54,14 +57,15 @@ scheduler mtacontainer.Scheduler) {
 				log.Println("Provider \"" + provider.GetName() + " is permanently down and now decommissioned.");
 				if scheduler.RemoveProviderFromService(provider) < 1 {
 					container.Stop();
-					log.Println("We have no services able of performing any server, please visit configuration ");
+					log.Println("We have no MTA providers left able of performing any service, please visit the"+
+					 " configuration and restart this application. Bye. Bye.");
 				}
 			}
 			log.Println("Something fatal happened to something not an MTAProvider :-(");
 		}
 
 
-		log.Println("Event: "+e.GetError().Error());
+		log.Println("Event: " + e.GetError().Error());
 	}
 
 }

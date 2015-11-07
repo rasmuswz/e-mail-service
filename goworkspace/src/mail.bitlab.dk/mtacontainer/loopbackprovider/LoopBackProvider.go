@@ -1,6 +1,10 @@
 //
 // The LoopBackProvider reverses the the To and From fields of
-// out going emails and delivers them to the Sender, that is Here.
+// out going emails and delivers them to the Sender. E.g. sent e-mails
+// are thrown back into the INBOX of the sender with TO and FROM reversed.
+//
+// This is particularly useful when End-To-End testing, manually in the
+// Browser observing logs or otherwise.
 //
 //
 // Author: Rasmus Winther Zakarias
@@ -23,6 +27,7 @@ type LoopBackProvider struct {
 	outgoing chan model.Email;
 	events   chan mtacontainer.Event;
 	command  chan commandprotocol.Command;
+	failureStrategy mtacontainer.FailureStrategy;
 }
 
 
@@ -67,7 +72,17 @@ func (ths *LoopBackProvider) handleOutgoingMessages() {
 		select {
 
 		case m := <-ths.outgoing:
-
+			if ths.failureStrategy.Failure(mtacontainer.EK_OK) == true {
+				//Oh no we failed
+				close(ths.outgoing);
+				ths.events <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT,errors.New("Loop Back MTA is failing and going down"),m);
+				for _,mm := range ths.outgoing { // purge outgoing challen resubmitting everything in there
+					ths.events <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT,errors.New("Loop Back MTA is failing and going down"),mm);
+				}
+				ths.Stop();
+				ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL,errors.New("Loop Back MTA is down"),ths);
+				return; // <- This actually stops this provider :-)
+			};
 			ths.events <- mtacontainer.NewEvent(mtacontainer.EK_OK,errors.New("Loop Back MTA Got message"),ths)
 			var headers = m.GetHeaders();
 			var temp = headers[model.EML_HDR_FROM];

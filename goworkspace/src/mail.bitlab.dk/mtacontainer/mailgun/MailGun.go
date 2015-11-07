@@ -60,6 +60,7 @@ type MailGunProvider struct {
 	inc    chan model.Email;
 	health chan mtacontainer.Event;
 	config map[string]string;
+	failureStrategy mtacontainer.FailureStrategy;
 }
 
 
@@ -163,8 +164,22 @@ func (mgp *MailGunProvider) mgSend(m model.Email) {
 	// report MailGunProvider as down
 	if err != nil {
 		mgp.log.Println(err.Error())
-		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
+		if (mgp.failureStrategy.Failure(mtacontainer.EK_CRITICAL) == false) {
+			mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
+		} else {
+			mgp.Stop(); // we are officially going down
+			mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, err);
+			mgp.log.Println("The MailGun Provider is considered Down.");
+			mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT,errors.New("MailGun is down for sending"),m);
+			for _,e := range mgp.out {
+				var ee model.Email = e;
+				mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT,errors.New("MailGun is down for sending"),ee);
+			}
+
+
+		}
 	} else {
+		mgp.failureStrategy.Success();
 		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_BEAT,
 			errors.New("MailGun says: " + mm + " for sending message giving it id " + mailId));
 
