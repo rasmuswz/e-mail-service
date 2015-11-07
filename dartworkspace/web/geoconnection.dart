@@ -49,7 +49,7 @@ QueryResponse PostQuery(String path, String data, Map<String, String> headers) {
 
 }
 
-QueryResponse GetQuery(String path, String data, Map<String, String> headers) {
+QueryResponse _GetQuery(String path, String data, Map<String, String> headers) {
 
   // open Ajax
   HttpRequest req = new HttpRequest();
@@ -110,7 +110,7 @@ class ClientAPI {
 
   List<GeoList> getGeoLists(String sessionId) {
     List<GeoList> result = [];
-    QueryResponse response = GetQuery("/geolist", "", {"SessionId": sessionId});
+    QueryResponse response = _GetQuery("/geolist", "", {"SessionId": sessionId});
     if (response.OK == false) {
       return null;
     }
@@ -138,7 +138,7 @@ class ClientAPI {
    */
   String doLogin(String basicAuth, String location) {
     String q = "?location="+location;
-    QueryResponse response = GetQuery(_path + "/login"+q, "", {"Authorization": "Basic " + basicAuth});
+    QueryResponse response = _GetQuery(_path + "/login"+q, "", {"Authorization": "Basic " + basicAuth});
     if (response.OK) {
       return response.Text;
     }
@@ -149,7 +149,7 @@ class ClientAPI {
    * Logout un-registering session id
    */
   void doLogout(String sessionId) {
-    QueryResponse response = GetQuery(_path + "/logout?session=" + sessionId, "", null);
+    QueryResponse response = _GetQuery(_path + "/logout?session=" + sessionId, "", null);
     print("logout response: " + response.Text);
   }
 
@@ -157,7 +157,7 @@ class ClientAPI {
   // Check that the connection to the server is alive.
   //
   void _check(Timer t) {
-    QueryResponse  resp = GetQuery(_path + "/alive", "", null);
+    QueryResponse  resp = _GetQuery(_path + "/alive", "", null);
     _alive = resp.OK;
     if (_alive != _previousAlive) {
       print("Notifying " + stateListeners.length.toString() + " listeners");
@@ -169,11 +169,22 @@ class ClientAPI {
   }
 
 
+  String getVersion() {
+
+    QueryResponse resp = _GetQuery("version.txt","",null);
+    if (resp.OK) {
+      return resp.Text;
+    } else {
+      return "no version";
+    }
+  }
+
+
   List<Email> queryForMail(int offset, int count, String sessionId ) {
 
     String jsRequest = "{index: ${offset}, length: ${count}}";
 
-    QueryResponse response = GetQuery(_path+"/getmail",jsRequest,{"SessionId": sessionId});
+    QueryResponse response = _GetQuery(_path+"/getmail",jsRequest,{"SessionId": sessionId});
 
     if (response.OK) {
     print("Response to getmail \""+response.Text+"\"");
@@ -195,6 +206,7 @@ class ClientAPI {
           {"sessionID": sessionId}  );
     return response;
   }
+
 
   get Alive => _alive;
 
