@@ -294,7 +294,7 @@ func New(scheduler Scheduler) MTAContainer {
 func (ths *DefaultMTAContainer) receiveMailToBeSentFromSendBackEnd(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close();
-	var mail model.EmailFromJSon = model.EmailFromJSon{};
+	var mail model.EmailImpl = model.EmailImpl{};
 	var data, dataErr = ioutil.ReadAll(r.Body);
 	if dataErr != nil {
 		ths.events <- NewEvent(EK_WARNING,dataErr,ths);
@@ -309,11 +309,9 @@ func (ths *DefaultMTAContainer) receiveMailToBeSentFromSendBackEnd(w http.Respon
 		return;
 	}
 
-	var email = model.NewEmailFromJSon(&mail);
-
 	ths.events <- NewEvent(EK_OK,errors.New("Forwarding Email to the MTAs."),ths);
 
-	ths.GetOutgoing() <- email;
+	ths.GetOutgoing() <- &mail;
 
 }
 

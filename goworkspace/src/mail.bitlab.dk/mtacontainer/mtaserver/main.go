@@ -93,7 +93,7 @@ func listenForSendBackEnd(container mtacontainer.MTAContainer) {
 			return;
 		}
 
-		var jemail = model.EmailFromJSon{};
+		var jemail = model.EmailImpl{};
 
 
 		err := json.Unmarshal(data, &jemail);

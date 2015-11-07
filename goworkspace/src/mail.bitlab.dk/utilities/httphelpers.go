@@ -3,6 +3,8 @@ import (
 	"net/http"
 	"io/ioutil"
 	"encoding/base64"
+	"encoding/json"
+	"io"
 )
 
 //
@@ -42,6 +44,21 @@ func GetQuery(url string, http_headers map[string]string) string {
 
 	return string(bytes);
 }
+
+func ReadJSonBody(request *http.Request, thing interface{}) error {
+	b,e := ioutil.ReadAll(request.Body);
+	if e != nil {
+		return e
+	}
+
+	err := json.Unmarshal(b,thing);
+	if err != nil {
+		return err
+	}
+
+	return nil;
+}
+
 
 func GetString(url string) string {
 	return GetQuery(url,make(map[string]string));

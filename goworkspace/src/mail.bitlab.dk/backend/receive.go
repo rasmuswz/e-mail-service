@@ -271,18 +271,17 @@ func (ths *ReceiveBackEnd) receiveMail(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, dataErr.Error(), http.StatusInternalServerError);
 		return;
 	}
-	var jemail model.EmailFromJSon;
-	jemailErr := json.Unmarshal(data, &jemail);
+	var email model.EmailImpl;
+	emailErr := json.Unmarshal(data, &email);
 
-	if (jemailErr != nil) {
-		log.Println("Error: " + jemailErr.Error());
+	if (emailErr != nil) {
+		log.Println("Error: " + emailErr.Error());
 		//ths.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, jemailErr);
-		http.Error(w, jemailErr.Error(), http.StatusInternalServerError);
+		http.Error(w, emailErr.Error(), http.StatusInternalServerError);
 		return;
 	} else {
-		var email = model.NewEmailFromJSon(&jemail);
 		log.Println("Delivering mail for database storage.");
-		ths.incoming <- email;
+		ths.incoming <- &email;
 	}
 }
 

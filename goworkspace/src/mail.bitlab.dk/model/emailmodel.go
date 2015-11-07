@@ -17,10 +17,6 @@ type Email interface {
 	GetContent() string;
 }
 
-type EmailFromJSon struct {
-	Headers map[string]string;
-	Content string;
-}
 
 const (
 	EML_HDR_FROM = "From";
@@ -34,12 +30,12 @@ const (
 )
 
 type EmailImpl struct {
-	header map[string]string;
+	headers map[string]string;
 	content string;
 }
 
 func (em *EmailImpl) GetHeaders() map[string]string {
-	return em.header;
+	return em.headers;
 }
 
 func (em *EmailImpl) GetContent() string {
@@ -52,29 +48,21 @@ func (em *EmailImpl) GetContent() string {
  //                                  "subject","My First Geo-Mail",
  //                                  "to","rwl@geomail.dk");
  //
-func NewEmail(content string, headers ... string) Email {
+func NewEmailFlattenHeaders(content string, headers ... string) Email {
 	var result = new(EmailImpl);
 	result.content = content;
-	result.header = make(map[string]string);
+	result.headers = make(map[string]string);
 	for i := 0; i < len(headers) / 2; i += 1 {
 		var key = headers[i];
 		var val = headers[i + 1];
-		result.header[key] = val;
+		result.headers[key] = val;
 	}
 	return result;
 }
 
-func NewMailWithMap(content string, headers map[string]string) Email {
+func NewMail(content string, headers map[string]string) Email {
 	var result = new(EmailImpl);
 	result.content = content;
-	result.header = headers;
-	return result;
-}
-
-
-func NewEmailFromJSon(mail *EmailFromJSon) Email {
-	var result = new(EmailImpl);
-	result.content = mail.Content;
-	result.header = mail.Headers;
+	result.headers = headers;
 	return result;
 }

@@ -6,7 +6,6 @@ import (
 	"log"
 	"mail.bitlab.dk/utilities"
 	"bytes"
-	"strconv"
 )
 
 type SendBackEnd struct {
@@ -33,14 +32,15 @@ func (ths *SendBackEnd) sendmail(w http.ResponseWriter, r *http.Request) {
 		return;
 	}
 
-	var jDec = json.NewDecoder(r.Body);
-	var email = new(model.EmailFromJSon)
-	err := jDec.Decode(email);
+	var email = model.EmailImpl{};
+
+	err := utilities.ReadJSonBody(r,&email);
 	if err != nil {
-		log.Println("[Sender BackEnd] Failed to decode json from client api:\n" + err.Error());
-	} else {
-		ths.outgoing <- model.NewEmailFromJSon(email);
+		http.Error(w,err.Error(),http.StatusInternalServerError);
+		return;
 	}
+
+	ths.outgoing <- &email;
 }
 
 func (ths *SendBackEnd) ListenForClientApiSendingMails() {
@@ -55,10 +55,8 @@ func (ths *SendBackEnd) ForwardToMtaContainer() {
 
 		case email := <-ths.outgoing:
 			var client = new(http.Client);
-			var em model.EmailFromJSon = model.EmailFromJSon{};
-			em.Content = email.GetContent();
-			em.Headers = email.GetHeaders();
-			var mailData, mailDataErr = json.Marshal(&em);
+
+			var mailData, mailDataErr = json.Marshal(&email);
 
 			if mailDataErr != nil {
 				log.Println("[SendBackEnd] Failed to marshall email:" + mailDataErr.Error());
