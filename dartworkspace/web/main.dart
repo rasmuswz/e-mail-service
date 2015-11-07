@@ -387,7 +387,7 @@ class ViewController {
   }
 }
 
-void displayVersionString() {
+void displayVersionString(GeoMailModel model) {
   querySelector("#version").innerHtml =
   "You are watching Geo Mail version <font color=\"red\">" +
   model.getVersion() +
@@ -404,6 +404,6 @@ main() {
   ClientAPI conn = new ClientAPI("/go.api");
   GeoMailModel model = new GeoMailModel(conn);
   ViewController view = new ViewController(model);
-  displayVersionString();
+  displayVersionString(model);
   view.display();
 }
