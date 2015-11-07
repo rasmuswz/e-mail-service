@@ -49,10 +49,9 @@ also we use their <b>Routes API</b> to get notified when e-mails arrive.
 
 We provide a <Custom</b> provider for <b>Amazon SeS</b> using their [Rest API](http://docs.aws.amazon.com/ses/latest/DeveloperGuide/sending-email.html). 
 
-To store e-mails for users INBOXes we define a storage container having a <b>REST-based JSon API</b>. The storage 
-contains entries that are of the type: map[string]string or Map<String,String>. An entry is added by providing a map
-from string to string. A list of entries can be looked up by providing a matching-map and all records having the keys with
-the same values as in the matching map will be return. Finally one can update an entry by given a matching map and a new-values-map and then all entries matching the matching map will have their entries with keys in the new-values-map updated.
+
+
+For usernames and other log in related information we need a storage. This solution has a storage support entries that maps of string to string. An entry is added by providing a map from string to string. A list of entries can be looked up by providing a matching-map and all records having the keys with the same values as in the matching map will be return. Finally one can update an entry by providing a matching map for the entry to be updated and a "new-values-map" with the new values. Keys that does not exist already are added to the entry.  Keys that already exists are overwritten.
 See [jsonstore.go](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/backend/jsonstore.go)
 Our storage container only supports in memory storage for the time being. A final version should include permanent storage like a Oracle <b>MySQL</b> database to implement the <i>jsonstore</i>. A high-performing solution might employ a file based solution in a High-Perf-Distributed-File-Systems like [Hadoop HDFS](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsUserGuide.html).
 
