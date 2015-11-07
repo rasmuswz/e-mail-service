@@ -163,6 +163,8 @@ Deploying
 Easy, this will update the production system at mail.bitlab.dk provided you have
 got the SSH-RSA private keys to access the servers.
 ```
-fab deploy
+fab deploy_bitlab_servers
 ```
-TODO(rwz): Write this section.
+The ssh-keys needed are avaible in the <pre>demo@dev.bitlab.dk:.ssh/ec2key.pem</pre> file on the 
+test development environment. As stated above you can login with <pre>demo@dev.bitlab.dk</pre> using
+the Start-up-passphrase given in submission note.
