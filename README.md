@@ -2,10 +2,6 @@
 E Mail Service
 ------------------------------------------------------------
 
-
-
-
-
 [BitMail Live](https://mail.bitlab.dk) - Try logging in. When a new user logs in
 for the first time, (s)he is created.
 
@@ -34,40 +30,34 @@ separating their address with semi-colon.
 <img alt="Dev logo" src="docs/images/devlogo.png" width="80px"/> Design
 ---
 This is a <b>full stack</b> implementation of an e-mail service using several sending providers. See the 
-systems component diagram below. I provide a <b>web-mail front-end</b> with a back-end
-server <b>abstracting any number</b> of MTA-providers like MailGun, Mandrill,
-Amazon SeS and SMTP transports. 
+systems component diagram below. 
 ![System Components Diagram](docs/SystemComponentDiagram.png "E-mail service - System components Diagram")
+
+The solution is implemented in four tiers divided between a server and a client. Three of the tiers run on the server while 
+the final teir is a browser on the client. At back of the server we have the MTAServer which is an application implementing the MTA Container. In the middle is the BackEndServer which handles access to the storage. The front of the server, the ClientAPI, accepts HTTPS connections from browser clients. Server applications are written in the [Go](http://www.golang.org) language while the client is written in [Dart](http://www.dartlang.org) compiled to JavaScript.
+
 An MTA-container runs with multiple MTA-provider-components inside to 
-offer a <b>unified API</b> for <i>sending</i> and <i>receiving</i> emails. Also, it ensures reliability through 
-fail-over if any MTA-provider should have a fall-out. Wrt. performance it can be optimized by providing a custom instance of the <b>Scheduler</b>-strategy interface; by default we provide an out of the Box Round Robin Scheduler. One could 
+offer a unified API for sending (and receiving) emails. Also, it ensures reliability through 
+fail-over if any MTA-provider should have a fall-out. The MTA Container uses a Scheduling strategy for chosing 
+which MTA provider it shall employ. By default a Round Robin Scheduler is provided. Performance can be optimized
+by providing a custom instance of the Scheduler-strategy interface. For example, one could 
 implement an adaptive scheduling strategy sending e-mails according to performance stats (e.g. slow MTAs gets scheduled less often).
 
-We provide a <b>Custom</b> provider for MailGun that is specialized towards using their comprehensive API
-including their <b>WebHooks API</b>  for getting <b>health information</b> about sent e-mails and 
-also we use their <b>Routes API</b> to get notified when e-mails arrive. 
+The system supports three MTAs for sending e-mail: Amazon SES, MailGun, and Mandrill. 
+For MailGun the provider is custom and specialized towards using their comprehensive API
+including their <b>WebHooks API</b> for getting <b>health information</b> about sent e-mails and 
+also their <b>Routes API</b> is used to get notified when e-mails arrive. 
+For Amazon SeS there is also a custom provider mainly using their SendEmail function [Rest API](http://docs.aws.amazon.com/ses/latest/DeveloperGuide/sending-email.html). Both Amazon SeS and MailGun offers
+Go-libraries to access their services, while Mandrill does not. The Mandrill provider thus creates the Urls and parses 
+the repsonse from the Mandrill End-Point. 
 
-We provide a <Custom</b> provider for <b>Amazon SeS</b> using their [Rest API](http://docs.aws.amazon.com/ses/latest/DeveloperGuide/sending-email.html). 
+The BackEndServer listens for incoming connections from the ClientAPI (the next teir). It uses the storage for user names and other log in related information when authenticating e-mail send requests. The storage is Json-based. Entries are maps from string to string. The storage offers three operations: put, update, and get. Lookup takes a map from string to string and returns all maps in storage that have the given map as a subset. See [jsonstore.go](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/backend/jsonstore.go) The storage container only supports in memory storage for the time being. A final version should include permanent storage like a Oracle <b>MySQL</b> database to implement the jsonstore. A high-performing solution might employ a file based solution in a High-Perf-Distributed-File-Systems like [Hadoop HDFS](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsUserGuide.html). The storage is used 
 
+The ClientAPI is a Https-webserver which serves the client. Also, Ajax requests are handled by taking appropriate actions with the BackEndServer and the MTAServer. As an example when a users logs in the ClientAPI queries the BackEndServer to authenticate.  
 
+On the client side a Dart-application renders the user interface. It implements the Model-View-Controller pattern having the View defined in [index.html](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/index.html), the Controller defined in [main.dart](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/main.dart) and a model defined in [mailmodel.dart](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/mailmodel.dart). The model takes a strategy for handing communication with the ClientAPI, see  [ClientAPI](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/geoconnection.dart) class.
 
-For usernames and other log in related information we need a storage. This solution has a storage support entries that maps of string to string. An entry is added by providing a map from string to string. A list of entries can be looked up by providing a matching-map and all records having the keys with the same values as in the matching map will be return. Finally one can update an entry by providing a matching map for the entry to be updated and a "new-values-map" with the new values. Keys that does not exist already are added to the entry.  Keys that already exists are overwritten.
-See [jsonstore.go](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/backend/jsonstore.go)
-Our storage container only supports in memory storage for the time being. A final version should include permanent storage like a Oracle <b>MySQL</b> database to implement the <i>jsonstore</i>. A high-performing solution might employ a file based solution in a High-Perf-Distributed-File-Systems like [Hadoop HDFS](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsUserGuide.html).
-
-The solution is implemented as three server applications: MTAserver, Backendserver and ClientAPI. The MTA server 
-manages the MTA providers and provides a REST API for sending emails. The MTA server also receives e-emails and 
-invokes a End-point on the BackEnd-Server when an email has arrived. 
-
-The BackEndServer listens for the MTA Container to deliver email, and stores those received in the jsonstore. Also it listens for the ClientAPI to query INBOX e-mails.
-
-The ClientAPI is a Https-webserver. It serves the build/web folder of a compiled Dart-application which runs on users browsers. The Dart-application uses AJax under the hood to call functionality back on the ClientAPI which in turn forwards requests to the BackEndServer (querying INBOX) and the MTAContainer (sending emails).
-
-This design is scalable in the sense that it supports adding multiple BackEndServers, MTA Containers and ClientAPIs. They all need to have access to a common store and the software is prepared for that by supplying a [ProxyStore](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/backend/jsonstore.go#L270) which is not implemented yet but the idea is that one instance will have an actual physical store while other servers implements the Proxy.
-
-
-The Dart browser application implements the Model-View-Controller pattern having the View defined in [index.html](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/index.html), the Controller defined in [main.dart](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/main.dart) and a model defined in [mailmodel.dart](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/mailmodel.dart). The mailmodel.dadrt takes a strategy for 
-handing communication with the ClientAPI, the browser side [ClientAPI](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/geoconnection.dart) class.
+This design has decoupled components in order to scale well. A deployed instance of the system may include several MTAServers, and ClientApis running on different machines. However, to give a consistent experience a common storage is needed, and therefore all ClientAPIs need access to the same BackEndServer. We do provide a Proxy interface for supplying a [ProxyStore](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/backend/jsonstore.go#L270) where the idea is that one instance will have the actual physical storage while other BackEndServer servers use a Proxy.
 
 Example Deployment
 --------------------
