@@ -2,10 +2,12 @@
 E Mail Service
 ------------------------------------------------------------
 
-[BitMail Live](https://mail.bitlab.dk) - Try logging in. When a new user logs in
+[BitMail Live](https://mail.bitlab.dk) - try logging in. When a new user logs in
 for the first time, (s)he is created.
 
-[Click here](#deploy-test-build-get) to see how the system is built, tested and deployed.
+[Click here](#deploy-test-build-get) - to see how the system is built, tested and deployed.
+
+[About the Author](#about-the-author) - a few words about me and web development.
 
 
 <img src="docs/images/bitmail.png" alt="BitMail" width="250px"/>Concept and Design
@@ -152,3 +154,8 @@ fab deploy_bitlab_servers
 The ssh-keys needed are avaible in the <pre>demo@dev.bitlab.dk:.ssh/ec2key.pem</pre> file on the 
 test development environment. As stated above you can log in with <pre>demo@dev.bitlab.dk</pre> using
 the <b>start-up-passphrase</b> given in submission note.
+
+About the author
+-------
+
+Hi
