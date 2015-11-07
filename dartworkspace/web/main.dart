@@ -404,5 +404,6 @@ main() {
   ClientAPI conn = new ClientAPI("/go.api");
   GeoMailModel model = new GeoMailModel(conn);
   ViewController view = new ViewController(model);
+  displayVersionString();
   view.display();
 }
