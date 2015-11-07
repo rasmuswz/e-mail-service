@@ -52,7 +52,6 @@ def build_goworkspace(tag):
 
                 local("go get github.com/mailgun/mailgun-go");
                 local("go get github.com/aws/aws-sdk-go/service/ses");
-                local("go get github.com/sendgrid/sendgrid-go");
                 local(buildCmdPrefix+"backend/backendserver");
                 local(buildCmdPrefix+"clientapi/clientapiserver");
                 local(buildCmdPrefix+"mtacontainer/mtaserver");
