@@ -64,6 +64,9 @@ The BackEndServer listens for the MTA Container to deliver email, and stores tho
 
 The ClientAPI is a Https-webserver. It serves the build/web folder of a compiled Dart-application which runs on users browsers. The Dart-application uses AJax under the hood to call functionality back on the ClientAPI which in turn forwards requests to the BackEndServer (querying INBOX) and the MTAContainer (sending emails).
 
+This design is scalable in the sense that it supports adding multiple BackEndServers, MTA Containers and ClientAPIs. They all need to have access to a comon store and the software is prepared for that by supplying a [ProxyStore](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/backend/jsonstore.go#L270) which is not implemented yet but the idea is that one instance will have an actual physical store while other servers implements the Proxy.
+
+
 The Dart browser application implements the Model-View-Controller pattern having the View defined in [index.html](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/index.html), the Controller defined in [main.dart](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/main.dart) and a model defined in [mailmodel.dart](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/mailmodel.dart). The mailmodel.dadrt takes a strategy for 
 handing communication with the ClientAPI, the browser side [ClientAPI](https://github.com/rasmuswz/e-mail-service/blob/master/dartworkspace/web/geoconnection.dart) class.
 
@@ -91,11 +94,14 @@ To get an overview of what it does see [fabfile.py](https://github.com/rasmuswz/
 killing the existing processes and starting the newly installed ones. The old versions are kept on the servers until someone 
 logs-in and manually deletes them.
 
-Features missing
+Is it feature complete?
 --------------------
-  * The GeoLists needs to be implemented (we do record user locations upon login and store them)
-  * Each server instance (we deploy on two servers) 
-  *  
+No! Writting a full flegged web-application from scratch is a lot of work. However I think we got far enough to get people excited about this project. Among missing features to have version realizing the concept of Geo Mailing we need:
+
+  * The GeoLists needs to be implemented (we do record user locations upon login and store them) e.g. when the user clicks on a list in the bottom of the page (like on <b>One Mile (9 Friends)</b>) we need act on that.
+  * Each server instance (we deploy on two servers) has its own memory store. E.g. the user will see different data when the DNS server routes them to a different server. Also, incoming emails are stored between the servers at the will of DNS-scheduling.
+  * Getting email listed when logged in
+
 
 #Deploy, Test, Build, Get
 --------------------
