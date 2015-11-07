@@ -394,7 +394,7 @@ class ViewController {
 
 void displayVersionString(BitMailModel model) {
   querySelector("#version").innerHtml =
-  "You are watching Geo Mail version <font color=\"red\">" +
+  "You are watching Bit Mail version <font color=\"red\">" +
   model.getVersion() +
   "</font>";
 }
