@@ -236,11 +236,7 @@ class GeoMailModel {
   }
 
   String getVersion() {
-    QueryResponse resp = GetQuery("version.txt", "", null).Text;
-    if (resp.OK == false) {
-      return " no version ";
-    }
-    return resp.Text;
+    return connection.getVersion();
   }
 }
 
