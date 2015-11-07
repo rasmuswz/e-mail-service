@@ -87,10 +87,9 @@ fab deploy
 </pre>
 
 You will see the Python-tool called [Fabric](http://www.fabfile.org/) running the deploy commands once for each server. 
-To get an overview of what it does see [fabfile.py](https://github.com/rasmuswz/e-mail-service/blob/master/fabfile.py). The <b>deploy</b> function near the buttom nicely lays out what is going on :-).
-
-
-
+To get an overview of what it does see [fabfile.py](https://github.com/rasmuswz/e-mail-service/blob/master/fabfile.py). The <b>deploy</b> function near the buttom nicely lays out what is going on :-). The final step in the deployment process is 
+killing the existing processes and starting the newly installed ones. The old versions are kept on the servers until someone 
+logs-in and manually deletes them.
 
 Features missing
 --------------------
@@ -110,17 +109,43 @@ Getting GeoMail
 
 Easy just clone this repo.
 
+Preparing your machine
+----
+
+You needs a few tools installed for the build for work:
+
+  * Python 2.17
+  * pip (to install Fabric do pip install Fabric)
+  * Fabric
+  * GoLang-SDK 1.5
+  * DartLang-SDK ^1.12.1
+
+Experimentally the scripts/bootstrap.sh script tries to get the dependencies right. This has 
+only be tested on OSX El Captain, but should work for Linux. 
 
 Building
 ----
 This takes a few easy steps depending on which operating system you are using.
 
-TODO(rwz): Write this section
+<pre>
+e-mail-service$ fab build
+</pre>
+
+Notice how <pre>go get</pre> and <pre>pub get</pre> gets all the Go and Dart dependencies. Fabric build it all,
+invoking both the Dart and Go build systems as needed. The Fabfile.py is original work coming with this package.
 
 Testing
 ----
-TODO(rwz): Write this section
+We only have tests of the components written in Go. Try running the Go test suite:
+<pre>
+e-mail-service$ cd goworkspace && go test
+</pre>
 
+Or use Fabric
+
+```
+e-mail-service$ fab test
+```
 
 Deploying
 -----
