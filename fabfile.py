@@ -112,7 +112,7 @@ def make_and_return_name_of_tagged_directory(tag):
 # Build (if necessary) and Send dart.tgz and go.tgz to the remote host
 # and unpacking them in {taggedDir}.
 #
-def transfer_and_unpack_tarballs(taggedDir,tag):
+def build_transfer_and_unpack_tarballs(taggedDir,tag):
     dartTarBall="dart_"+tag+".tgz"
     goTarBall="go_"+tag+".tgz"
     if not exists(taggedDir+"/"+dartTarBall):
@@ -212,12 +212,35 @@ def write_tag_in_file(filename,tag, destination):
     if (destination != None):
         put(filename,destination);
 
+def deploy_version_number(taggedDir,tag):
+        write_tag_in_file("dartworkspace/build/web/version.txt", tag, taggedDir+"/dartworkspace/build/web/version.txt");
+        write_tag_in_file("dartworkspace/web/version.txt",tag,None);
+
+
+#
+# Local target
+# 
+def build():
+    """ Build the Go and Dart workspaces locally"""
+    build_dartworkspace()
+    build_goworkspace()
+
+#
+# Run the Go tests locally
+#
+def test():
+    """Run the test suite in the go-workspace locally"""
+    build_goworkspace();
+    with cd("goworkspace"):
+        local("go test");
+
+
 #
 # Deploy the service to the mail.bitlab.dk servers.
 #
 @hosts(['ubuntu@mail1.bitlab.dk','rwz@mail0.bitlab.dk'])
-def deploy():
-    
+def deploy_bitlab_servers():
+    """Deploy this workspace on the bitlab servers: mail0.bitlab.dk and mail1.bitlab.dk"""
     sync_with_git()
 
     run("mkdir -p deploy");
@@ -228,30 +251,18 @@ def deploy():
 
         taggedDir = make_and_return_name_of_tagged_directory(tag)
 
-        transfer_and_unpack_tarballs(taggedDir,tag)
+        build_transfer_and_unpack_tarballs(taggedDir,tag)
 
-        absGoBinDir = check_for_and_install_GOSDK_on_remote(taggedDir)
+        absolute_path_to_gosdk_bin = check_for_and_install_GOSDK_on_remote(taggedDir)
 
-        build_remote_goworkspace(absGoBinDir,taggedDir+"/goworkspace")
+        build_remote_goworkspace(absolute_path_to_gosdk_bin,taggedDir+"/goworkspace")
         
         decrypt_pack_and_send_certificate(taggedDir,tag)
 
-        write_tag_in_file("dartworkspace/build/web/version.txt", tag, taggedDir+"/dartworkspace/build/web/version.txt");
-        write_tag_in_file("dartworkspace/web/version.txt",tag,None);
+        deploy_version_number(taggedDir,tag);
 
         start_servers(taggedDir)
 
         print("Version "+tag+" has been deployed");
 
-
-@hosts(['ubuntu@mail1.bitlab.dk','rwz@mail0.bitlab.dk'])
-def demo():
-
-    with cd("deploy"):
-
-        tag = make_git_tag();
-
-        taggedDir = make_and_return_name_of_tagged_directory(tag);
-
-        write_tag_in_file("dartworkspace/build/web/version.txt", tag, taggedDir+"/dartworkspace/build/web");
 
