@@ -207,7 +207,8 @@ def start_mta_server(taggedDir):
 def start_servers(taggedDir):
     with cd(taggedDir):
         key=getpass("Api Decryption Key (the start-up passphrase): ");
-        run("scripts/start_servers.sh restart "+key);
+        with settings(hide('running')):
+            run("scripts/start_servers.sh restart "+key);
 
 def write_tag_in_file(filename,tag, destination):
     f = open(filename,"w");
