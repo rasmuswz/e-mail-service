@@ -19,16 +19,17 @@ and reliable e-mail service.
 
 Concept
 ---
-The concept intended for this project is GeoMail, the
-globally-localized e-mail service. We provide a web-based email
-service (e.g. like Gmail) but require that users offer their
-location upon log-in. The idea is that "<b>You have to share to get
-anywhere</b>" in this case it is your position. In addition to an in-box and the ability to compose
-e-mails the service (and this is the new thing) presents mailing lists
-of people logged in nearby. An example would be a <b>one mile</b> list
-allowing the user to send an email to his contacts (people he has
-received or send mails to) logged in with in a range of one mile from the
-users current location.
+The concept is a high reliable e-mail sending service. The service is a container that employes several 
+Mail Transport Agent Providers (MTA Provider). A single point of e-mail submission is offered by the container. When an 
+e-mail is submitted to the service it schedules a provider and forwards the e-mail to it. If a transport fails 
+one of the other providers is used as fail-over. If no MTA provider is availble the e-mail service logs that 
+it is down and terminates entirely.
+
+To provide a way of sending e-mails the system offers a simple web-mail interface over https. 
+The interface allows the user to log in and compose e-mails. Multiple recipient are supported by
+separating their address with semi-colon.
+
+
 
 <img alt="Dev logo" src="docs/images/devlogo.png" width="80px"/> Design
 ---
