@@ -1,3 +1,14 @@
+//
+// This test verifies black-box that a MTAproviders work by submitting
+// an email for sending and letting the user verify that an email indeed
+// arrived in he(r) Inbox.
+//
+// The test here is parameterized by the kind of MTAProvider
+//
+// Author: Rasmus Winther Zakarias
+//
+
+
 package test
 import (
 	"mail.bitlab.dk/mtacontainer"
@@ -13,8 +24,11 @@ import (
 // There is a main function for each provider invoking this
 // function with an instance of the provider.
 //
-// The first command line argument shall be the email address
-// we will send an e-mail to for verification.
+// See amazonsesprovider/amazonmanualtest/manualtest
+//     mailgunprovider/mailgunmanualtest/manualtest
+//     sendgridprovider/sendgridmanualtest/manualtest
+//
+//
 //
 // ---------------------------------------------------------
 
