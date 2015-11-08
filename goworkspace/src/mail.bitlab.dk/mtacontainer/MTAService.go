@@ -12,6 +12,7 @@ import (
 	"mail.bitlab.dk/model"
 	"time"
 	"log"
+	"mail.bitlab.dk/utilities"
 )
 
 type EventKind uint32;
@@ -64,7 +65,7 @@ type FailureStrategy interface {
 // ------------------------------------------------------------
 type ThresholdFailureStrategy struct {
 	noSevereConsecutiveFailures int;
-	threshold int;
+	threshold                   int;
 }
 
 func (ths * ThresholdFailureStrategy) Failure(f EventKind) bool {
@@ -80,7 +81,7 @@ func (ths * ThresholdFailureStrategy) Success() {
 	ths.noSevereConsecutiveFailures = 0;
 }
 
-func NewThressHoldFailureStrategy(thresshold int) FailureStrategy{
+func NewThressHoldFailureStrategy(thresshold int) FailureStrategy {
 	result := new(ThresholdFailureStrategy);
 	result.noSevereConsecutiveFailures = 0;
 	result.threshold = thresshold;
@@ -113,9 +114,9 @@ type HealthService interface {
 }
 
 type defaultEvent struct {
-	time time.Time;
-	err  error;
-	kind EventKind;
+	time    time.Time;
+	err     error;
+	kind    EventKind;
 	payload interface{};
 }
 
@@ -207,6 +208,7 @@ type DefaultMTAContainer struct {
 	incoming  chan model.Email;
 	outgoing  chan model.Email;
 	events    chan Event;
+	log       *log.Logger;
 }
 
 
@@ -235,7 +237,6 @@ func (d *DefaultMTAContainer) Stop() {
 		var provider = d.providers[i];
 		provider.Stop();
 	}
-	close(d.events);
 }
 
 //
@@ -251,6 +252,7 @@ func New(scheduler Scheduler) MTAContainer {
 	result.incoming = make(chan model.Email);
 	result.outgoing = make(chan model.Email);
 	result.events = make(chan Event);
+	result.log = utilities.GetLogger("MTAContainer");
 
 	result.scheduler = scheduler;
 
@@ -261,24 +263,50 @@ func New(scheduler Scheduler) MTAContainer {
 		// incoming
 		go func() {
 			for {
-				var in= pp.GetIncoming();
-				var email,ok = <-in;
+				var in = pp.GetIncoming();
+				var email, ok = <-in;
 				if ok == false {
-					log.Println("Incoming was closed.")
+					result.log.Println("Incoming was closed.")
 				}
 				result.incoming <- email;
 			}
 		}();
 
-		// health events
+		//
+		// Manage MTAProviders
+		//
 		go func() {
 			for {
 				var evt = pp.GetEvent();
 				var event, ok = <-evt;
 				if (ok == false) {
-					log.Println("Event channel was closed. Terminating event listener.");
+					result.log.Println("Event channel was closed. Terminating event listener.");
 					return;
 				}
+				//
+				// Fail over
+				//
+				if event.GetKind() == EK_RESUBMIT {
+					mail, ok := event.GetPayload().(model.Email);
+					if ok {
+						result.outgoing <- mail;
+					}
+				}
+
+				//
+				// Remove dead service from schedule
+				//
+				if event.GetKind() == EK_FATAL {
+					provider,ok := event.GetPayload().(MTAProvider);
+					if ok {
+						result.scheduler.RemoveProviderFromService(provider);
+						if len(result.scheduler.GetProviders()) < 1 {
+							result.log.Println("No MTA Providers left we shutdown.")
+							result.Stop();
+						}
+					}
+				}
+
 				result.events <- event;
 			}
 		}();
@@ -290,10 +318,10 @@ func New(scheduler Scheduler) MTAContainer {
 			var email = <-result.outgoing;
 			provider := result.scheduler.Schedule();
 			if provider == nil {
-				log.Println("Scheduler gave nil Provider");
-				continue;
+				result.log.Println("Scheduler gave nil Provider");
+				return; // no more MTAs
 			}
-			log.Println("Scheduling mail for sending on " + provider.GetName());
+			result.log.Println("Scheduling mail for sending on " + provider.GetName());
 			provider.GetOutgoing() <- email;
 		}
 	}();
@@ -301,41 +329,4 @@ func New(scheduler Scheduler) MTAContainer {
 	return result;
 }
 
-//func (ths *DefaultMTAContainer) receiveMailToBeSentFromSendBackEnd(w http.ResponseWriter, r *http.Request) {
-//
-//
-//
-//	defer r.Body.Close();
-//
-//	var data, dataErr = ioutil.ReadAll(r.Body);
-//	if dataErr != nil {
-//		ths.events <- NewEvent(EK_WARNING,dataErr,ths);
-//		http.Error(w,dataErr.Error(),http.StatusInternalServerError);
-//		return ;
-//	}
-//
-//	log.Println("### EMAIL: "+string(data)+" \n");
-//
-//	mailErr := json.Unmarshal(data,&email);
-//	if mailErr != nil {
-//		ths.events <- NewEvent(EK_WARNING,errors.New("Malformed email"),ths);
-//		http.Error(w,"Malformed email cannot send",http.StatusBadRequest);
-//		return;
-//	}
-//
-//	ths.events <- NewEvent(EK_OK,errors.New("Forwarding Email to the MTAs."),ths);
-//	ths.GetOutgoing() <- model.NewMailS(email.content,email.headers);
-//
-//}
-//
-//func (ths *DefaultMTAContainer) ListForSendBackEnd() {
-//
-//	var mux = http.NewServeMux();
-//	mux.HandleFunc("/sendmail", ths.receiveMailToBeSentFromSendBackEnd);
-//	err := http.ListenAndServe(utilities.MTA_LISTENS_FOR_SEND_BACKEND, mux);
-//	if err != nil {
-//		log.Fatalln("Could not listen for Send Back End: " + err.Error());
-//	}
-//
-//}
 

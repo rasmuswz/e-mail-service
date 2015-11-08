@@ -26,7 +26,7 @@
 <div id="top-tool-bar" class="page-header jmbotron">
     <div class="panel-body">
         <center>
-            <h1><img src="images/bitmail.png" alt="BitLab BitMail" width="20%"/><br/>
+            <h1><img src="images/bitmail.png" alt="BitLab BitMail" width="200px"/><br/>
 
             </h1>
         </center>
@@ -35,20 +35,23 @@
 </div>
 
 <div class="container-fluid" id="compose-email-window" style="display: none;">
-    <div class="row">
-        <label for="compose-email-window-recipients">Recipients (separate by comma):</label>
-        <input type="text" class="form-control col-md-2 col-offset-1" id="compose-email-window-recipients"/>
-    </div>
-    <div class="row">
-        <label for="compose-email-window-subject">Subject:</label>
-        <input type="text" class="form-control col-md-4" id="compose-email-window-subject"/>
-    </div>
-    <div class="row">
-        <input type="submit" class="btn btn-default col-md-1" id="compose-email-window-send" value="Send"/>
-        <input type="submit" class="btn btn-default col-md-1" id="compose-email-window-cancel" value="Cancel"/>
-    </div>
-    <div class="row">
-        <textarea class="form-control col-md-4 centered well" id="compose-email-window-content" style="min-height: 400px;"></textarea>
+    <div class="col-md-10 col-md-offset-1">
+        <div class="row">
+            <label for="compose-email-window-recipients">Recipients (separate by comma):</label>
+            <input type="text" class="form-control col-md-2 col-offset-1" id="compose-email-window-recipients"/>
+        </div>
+        <div class="row">
+            <label for="compose-email-window-subject">Subject:</label>
+            <input type="text" class="form-control col-md-4" id="compose-email-window-subject"/>
+        </div>
+        <div class="row">
+            <input type="submit" class="btn btn-default col-md-1" id="compose-email-window-send" value="Send"/>
+            <input type="submit" class="btn btn-default col-md-1" id="compose-email-window-cancel" value="Cancel"/>
+        </div>
+        <div class="row">
+            <textarea class="form-control col-md-4 centered well" id="compose-email-window-content"
+                      style="min-height: 400px;"></textarea>
+        </div>
     </div>
 </div>
 
@@ -73,7 +76,7 @@
     <h1 id="error-message"></h1>
 </div>
 
-<div class="container-fluid" id="mail-window">
+<div class="container-fluid" id="mail-window" style="display: none;">
     <button type="button" class="btn btn-default" id="logout">Sign out</button>
     <div class="row">
         <div class="col-md-4">

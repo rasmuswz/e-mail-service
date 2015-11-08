@@ -272,7 +272,7 @@ def test():
     with lcd("goworkspace"):
         with shell_env(GOPATH=os.path.realpath("goworkspace"),
                        PATH=path):
-            local("go test ./...");
+            local("go test mail.bitlab.dk/mtacontainer/test");
 
 #
 # Run tests that require manuel validation

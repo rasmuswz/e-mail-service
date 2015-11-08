@@ -57,7 +57,7 @@ class Email {
   }
 
   Email.WithModel(this.model, this._to, this._subject) {
-    this._from = model.Username;
+    this._from = model.Username+"@mail.bitlab.dk";
     this._location = "here";
   }
 
@@ -75,8 +75,6 @@ class Email {
     this._content = content;
   }
 }
-
-const int CHECK_INTERVAL_S = 2;
 
 
 /**

@@ -83,17 +83,8 @@ func (ths *LoopBackProvider) handleOutgoingMessages() {
 		case m := <-ths.outgoing:
 			log.Println("An outgoing event arrived.")
 			if ths.failureStrategy.Failure(mtacontainer.EK_OK) == true {
-				//Oh no we failed
-				close(ths.outgoing);
+				//Oh no we fail
 				ths.events <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT, errors.New("Loop Back MTA is failing and going down"), m);
-				for { // purge outgoing challen resubmitting everything in there
-					mm, ok := <-ths.outgoing;
-					if ok == false {
-						break;
-					}
-					ths.events <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT, errors.New("Loop Back MTA is failing and going down"), mm);
-				}
-				ths.Stop();
 				ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, errors.New("Loop Back MTA is down"), ths);
 				return; // <- This actually stops this provider :-)
 			};

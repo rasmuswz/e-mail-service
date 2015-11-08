@@ -141,7 +141,7 @@ class SystemMessageController {
     if (current != null) {
       current.cancel();
     }
-    current = new Timer(new Duration(seconds: 2), () {
+    current = new Timer(new Duration(seconds: 20), () {
       this.hide();
       this.current = null;
     });

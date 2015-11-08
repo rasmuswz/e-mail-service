@@ -34,6 +34,9 @@ func (rrs *RoundRobinScheduler) GetProviders() []MTAProvider {
 }
 
 func (rrs *RoundRobinScheduler) Schedule() MTAProvider {
+	if (len(rrs.providers) < 1) {
+		return nil;
+	}
 	var result = rrs.providers[rrs.current];
 	rrs.current = ((rrs.current+1) % len(rrs.providers));
 	return result;
@@ -60,7 +63,12 @@ func (rrs *RoundRobinScheduler) RemoveProviderFromService(mta MTAProvider) int {
 				i = i + 1;
 			}
 		}
-		rrs.current = rrs.current % len(newProviders);
+
+		if len(newProviders) < 1 {
+			rrs.current = 0;
+		} else {
+			rrs.current = rrs.current % len(newProviders);
+		}
 		rrs.providers = newProviders;
 	}
 
