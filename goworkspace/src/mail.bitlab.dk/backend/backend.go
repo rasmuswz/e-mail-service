@@ -1,8 +1,6 @@
 //
-// The Receive back end listens for the mta container to
-// report e-mails ready for delivery and then the ReceiveBackEnd
-// stores these in a JsonStore.
-//
+// The Back-End services the Client-API assisting with storing user names
+// and log in related informatin.
 //
 // Author: Rasmus Winter Zakarias
 //
@@ -13,16 +11,12 @@ import (
 	"mail.bitlab.dk/mtacontainer"
 	"net/http"
 	"log"
-	"errors"
-	"encoding/json"
 	"mail.bitlab.dk/utilities"
 	"encoding/base64"
 	"strings"
 	"time"
 	"os"
 	"mail.bitlab.dk/utilities/go"
-	"io/ioutil"
-	"bytes"
 )
 
 const (
@@ -50,8 +44,6 @@ func NewReceiveBackend(store JSonStore) *ReceiveBackEnd {
 	res.cmd = make(chan int);
 	res.log = utilities.GetLogger("[Backend Server]", os.Stdout);
 	go res.ListenForClientApi();
-	go res.ListenForMtaContainer();
-	go res.StoreMailsInStore();
 
 	return res;
 }
@@ -75,7 +67,6 @@ func (ths *ReceiveBackEnd) Stop() {
 // ---------------------------------------------------------
 func (ths *ReceiveBackEnd) ListenForClientApi() {
 	var mux = http.NewServeMux();
-	mux.HandleFunc("/getmail", ths.handleGetMail);
 	mux.HandleFunc("/login", ths.handleLogin);
 	mux.HandleFunc("/logout", ths.handleLogout);
 	mux.HandleFunc("/", ths.handleError);
@@ -164,6 +155,9 @@ func (ths *ReceiveBackEnd) handleLogin(w http.ResponseWriter, r *http.Request) {
 	r.Body.Close();
 }
 
+//
+// Check user against Json-store
+//
 func CheckAuthorizedUser(store JSonStore, req *http.Request) (string, bool) {
 	var credentials = req.Header["Authorization"][0];
 	var decoded, decodedErr = base64.StdEncoding.DecodeString(credentials)
@@ -184,143 +178,5 @@ func CheckAuthorizedUser(store JSonStore, req *http.Request) (string, bool) {
 	} else {
 		log.Println("User access Denied: " + username);
 		return username, false;
-	}
-}
-
-// Service API
-func (ths *ReceiveBackEnd) handleGetMail(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close();
-	type GetMailRequest struct {
-		index  int;
-		length int;
-	}
-
-	ths.log.Println("Client is asking for e-mails");
-
-	var username, ok = CheckAuthorizedUser(ths.store, r);
-	if ok == false {
-		http.Error(w,"Access denied",http.StatusForbidden);
-		return;
-	}
-
-	data, dataErr := ioutil.ReadAll(r.Body);
-	if dataErr != nil {
-		http.Error(w, "Died reading data", http.StatusInternalServerError);
-		return;
-	}
-
-	var ask GetMailRequest = GetMailRequest{};
-	askErr := json.Unmarshal(data, &ask);
-	if askErr != nil {
-		ths.log.Println("Could not deserialise request." + askErr.Error());
-		http.Error(w, "Bad request", http.StatusInternalServerError);
-		return;
-	}
-
-	ths.log.Println("looking for mail in storage");
-	query := NewEmailBlobForFindingMBox(NewMBox(username, model.MBOX_NAME_INBOX).UniqueID).ToJSonMap();
-	buffer := bytes.NewBuffer(nil);
-
-
-	buffer.WriteString("[");
-
-	var emailsForUser []map[string]string = ths.store.GetJSonBlobs(query);
-
-	ths.log.Println("We have "+goh.IntToStr(len(emailsForUser))+ " emails from storage");
-
-	for i := range emailsForUser {
-		if (i >= ask.index && i < ask.index + ask.length) {
-			blob := NewEmailBlobFromJSonMap(emailsForUser[i]);
-			buffer.WriteString("{\"Headers\":{" +
-			"\"To\":\"" + blob.To + "," +
-			"\"From\":\"" + blob.From + "\","+
-			"\"Subject\":\""+blob.Subject+"\"}"+
-			"\"Content\":\""+blob.Content+"\"}");
-			if (i < ask.index-1) {
-				buffer.WriteString(",");
-			}
-		}
-	}
-	buffer.WriteString("]");
-	println("serialised email: "+buffer.String());
-
-	w.Write(buffer.Bytes());
-
-	log.Println("[Receive Backend] Incoming request from the client API, leaving");
-}
-
-func (ths *ReceiveBackEnd) ListenForMtaContainer() {
-
-	var mux = http.NewServeMux();
-	mux.HandleFunc("/newmail", ths.receiveMail);
-	mux.HandleFunc("/", ths.handleError);
-	var err = http.ListenAndServe(utilities.RECEIVE_BACKEND_LISTENS_FOR_MTA, mux);
-	if err != nil {
-		log.Fatalln("[Receiver Backend] Failed to listen for MTA: " + err.Error());
-	}
-	log.Println("[Receiver Backend] Leaving we no longer listens for incoming mail.");
-}
-
-func (ths *ReceiveBackEnd) receiveMail(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close();
-	//ths.events <- mtacontainer.NewEvent(mtacontainer.EK_OK, errors.New("Incoming e-mail from Mta"));
-	ths.log.Println("Incoming e-mail from MTA");
-	var data, dataErr = ioutil.ReadAll(r.Body);
-	if dataErr != nil {
-		log.Println("Error: " + dataErr.Error());
-		ths.events <- mtacontainer.NewEvent(mtacontainer.EK_WARNING, dataErr);
-		http.Error(w, dataErr.Error(), http.StatusInternalServerError);
-		return;
-	}
-	var email model.EmailImpl;
-	emailErr := json.Unmarshal(data, &email);
-
-	if (emailErr != nil) {
-		log.Println("Error: " + emailErr.Error());
-		//ths.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, jemailErr);
-		http.Error(w, emailErr.Error(), http.StatusInternalServerError);
-		return;
-	} else {
-		log.Println("Delivering mail for database storage.");
-		ths.incoming <- &email;
-	}
-}
-
-func getNameFromEmail(emailAddr string) string {
-
-	var parts = strings.Split(emailAddr, "@");
-	return parts[0];
-
-}
-
-func (ths *ReceiveBackEnd) StoreMailsInStore() {
-	for {
-		select {
-		case mail := <-ths.incoming:
-			println("Incoming mail for delivery:");
-
-			var username = getNameFromEmail(mail.GetHeader(model.EML_HDR_TO));
-			var users = ths.store.GetJSonBlobs(UserBlobNew(username, "").ToJSonMap());
-
-			if len(users) < 1 {
-				ths.events <- mtacontainer.NewEvent(mtacontainer.EK_WARNING, errors.New("Cannot deliver mail to non-existing user: "));
-				continue;
-			}
-
-			for i := range users {
-				log.Println("Delivering mail to " + users[i]["Username"]);
-				blob := NewEmailBlob(NewMBox(username,
-					model.MBOX_NAME_INBOX).UniqueID,
-					mail.GetHeader(model.EML_HDR_SUBJECT),
-					mail.GetHeader(model.EML_HDR_TO),
-					mail.GetHeader(model.EML_HDR_FROM),
-					mail.GetContent());
-				ths.store.PutJSonBlob(blob.ToJSonMap());
-			}
-		case cmd := <-ths.cmd:
-			if (cmd == CMD_SHUTDOWN) {
-				return;
-			}
-		}
 	}
 }

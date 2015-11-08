@@ -1,6 +1,10 @@
 package utilities
 
-
+// ------------------------------------------------------
+//
+// Port numbers for intra server communication (and HTTPS 443)
+//
+// ------------------------------------------------------
 const (
 	CLIENTAPI_SERVICE_PORT = ":443";
 	MTA_MAILGUN_SERVICE_PORT = ":31415";

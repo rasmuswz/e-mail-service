@@ -3,7 +3,7 @@
  *  MailModel.
  *  ----------
  *
- *  The client side model of our Geo-Mail data-model.
+ *  The client side model of our Bit-Mail data-model.
  *
  *
  * Author: Rasmus Winter Zakarias
@@ -27,7 +27,6 @@ class Email {
   String _from;
   String _to;
   String _subject;
-  String _location;
   String _content;
   BitMailModel model;
 
@@ -35,7 +34,6 @@ class Email {
     this._from = json['from'];
     this._to = json['to'];
     this._subject = json['subject'];
-    this._location = json['location'];
   }
 
   Map<String, String> toMap() {
@@ -49,7 +47,6 @@ class Email {
 
   String toJson() {
     return """{"Headers":{"From":"${this._from}","Subject":"${this._subject}","To":"${this._to}"},"Content":"${this._content}"}""";
-    //return "{\"Headers\": {\"To\":\""+_to+"\",\"From\":\""+_from+"\":"
   }
 
   Email(this._from, this._subject) {
@@ -58,7 +55,6 @@ class Email {
 
   Email.WithModel(this.model, this._to, this._subject) {
     this._from = model.Username+"@mail.bitlab.dk";
-    this._location = "here";
   }
 
   get From => _from;
@@ -157,17 +153,6 @@ class BitMailModel {
 
   /** Are we logged in or not */
   get IsLoggedIn => basicAuth != null;
-
-  /**
-   * Populate the model with inbox mails
-   */
-  List<Email> loadEmailList(int offset, int count) {
-    List<Email> mails = [];
-
-    mails = connection.queryForMail(offset, count, session);
-
-    return mails;
-  }
 
 
   bool sendEmail(Email mail) {

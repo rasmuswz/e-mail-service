@@ -9,6 +9,11 @@ import (
 	"mail.bitlab.dk/mtacontainer/test"
 )
 
+//
+// Check that {Outgoing} and {Incoming} are connected
+// this is ensured by this test when it doesn't deadlock.
+//
+//
 
 func TestLoopBack(t *testing.T) {
 

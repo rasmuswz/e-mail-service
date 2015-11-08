@@ -149,7 +149,8 @@ func NewEvent(kind EventKind, e error, sender ...interface{}) Event {
 
 /*
  * Mail Transport Agent Services offers a channel for receiving
- * emails and a chanel for sending them.
+ * emails and a chanel for sending them. This project has focus on
+ * sending e-mails but maybe one day we would like to receive them too.
  *
  * These is a {Stop} method to shutdown gracefully.
  *
@@ -264,7 +265,7 @@ func New(scheduler Scheduler) MTAContainer {
 		go func() {
 			for {
 				var in = pp.GetIncoming();
-				var email, ok = <-in;
+				var email, ok = <-in;  // suppose an MTA some day delivers an email it happens here
 				if ok == false {
 					result.log.Println("Incoming was closed.")
 				}

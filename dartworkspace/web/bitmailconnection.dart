@@ -1,8 +1,22 @@
+/**
+ *
+ * Browser side of the ClientAPI, handling serialization, string and bytes, while
+ * the model in mailmodel.dart works with objects.
+ *
+ * Author: Rasmus Winther Zakarias
+ *
+ */
+
 import 'dart:async';
 import 'dart:html';
 import 'dart:convert';
 import 'mailmodel.dart';
 
+/**
+ *
+ * Sending helpers
+ *
+ */
 class QueryResponse {
   String Text;
   bool OK;
@@ -159,23 +173,6 @@ class ClientAPI {
     } else {
       return "no version";
     }
-  }
-
-
-  List<Email> queryForMail(int offset, int count, String sessionId ) {
-
-    String jsRequest = "{index: ${offset}, length: ${count}}";
-
-    QueryResponse response = _GetQuery(_path+"/getmail",jsRequest,{"SessionId": sessionId});
-
-    if (response.OK) {
-    print("Response to getmail \""+response.Text+"\"");
-      List<Map<String,String>> mails = JSON.decode(response.Text);
-      return [];
-    } else {
-      return [];
-    }
-
   }
 
   /**

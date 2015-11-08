@@ -29,6 +29,16 @@ type Email interface {
 }
 
 
+// ---------------------------------------------------
+//
+//
+// Email Implementation
+//
+// We provide several way of getting an Email object as
+// it has been needed at some point.
+//
+//
+// ---------------------------------------------------
 const (
 	EML_HDR_FROM = "From";
 	EML_HDR_TO = "To";
@@ -45,16 +55,15 @@ type EmailImpl struct {
 	content string;
 }
 
+// support the common case of reading the first (and typically only) value
 func (em *EmailImpl) GetHeader(name string) string {
-
 	v,ok := em.headers[name];
 	if ok == false {
 		return "";
 	}
-
 	return v[0];
-
 }
+
 
 func (em *EmailImpl) GetHeaders() map[string][]string {
 	return em.headers;
@@ -90,25 +99,6 @@ func NewEmailFromBytes(data []byte) Email {
 	result.headers = m.Header;
 
 	return &result;
-}
-
-
- // Quick way for generating an {Email} struct from strings.
- //
- // Example: var email = CreateEmail("Hi, this is an email.",
- //                                  "subject","My First Geo-Mail",
- //                                  "to","rwl@geomail.dk");
- //
-func NewEmailFlattenHeaders(content string, headers ... string) Email {
-	var result = new(EmailImpl);
-	result.content = content;
-	result.headers = make(map[string][]string);
-	for i := 0; i < len(headers) / 2; i += 1 {
-		var key = headers[i];
-		var val = headers[i + 1];
-		result.headers[key] = []string{val};
-	}
-	return result;
 }
 
 func NewMail(content string, headers map[string][]string) Email {

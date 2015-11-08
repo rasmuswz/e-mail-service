@@ -1,3 +1,13 @@
+// ------------------------------------------------------
+//
+// CRYPTO UTILS
+//  [] In particular API keys for Amazon etc. are present as
+//  cipher text constants in the code. Upon start up (in particular
+//  for the mtaserver) these are decrypted by a password provided
+//  on command-line. This is solely to ensure the API keys doesn't
+//  end up on GitHub for public (mis)usage.
+//
+//
 package utilities
 import (
 	"hash"

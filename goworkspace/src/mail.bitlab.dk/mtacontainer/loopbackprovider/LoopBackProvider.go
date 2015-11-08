@@ -1,10 +1,10 @@
 //
 // The LoopBackProvider reverses the the To and From fields of
-// out going emails and delivers them to the Sender. E.g. sent e-mails
-// are thrown back into the INBOX of the sender with TO and FROM reversed.
+// out going emails and routes them back through the {incoming} channel.
+// E.g. sent e-mail are thrown back into the INBOX of the sender with
+// TO and FROM reversed (if such an MBox where implemented).
 //
-// This is particularly useful when End-To-End testing, manually in the
-// Browser observing logs or otherwise.
+// This is particularly useful when End-To-End testing.
 //
 //
 // Author: Rasmus Winther Zakarias
@@ -88,17 +88,15 @@ func (ths *LoopBackProvider) handleOutgoingMessages() {
 				ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, errors.New("Loop Back MTA is down"), ths);
 				return; // <- This actually stops this provider :-)
 			};
-			log.Println("Sending event.");
+
 			ths.events <- mtacontainer.NewEvent(mtacontainer.EK_OK, errors.New("Loop Back MTA Got message"), ths)
-			log.Println("Managed to send event.");
+
 			var headers = m.GetHeaders();
 			if headers != nil {
-				log.Println("Reversing email direction :-)")
 				var temp = headers[model.EML_HDR_FROM];
 				headers[model.EML_HDR_FROM] = headers[model.EML_HDR_TO];
 				headers[model.EML_HDR_TO] = temp;
 			}
-			log.Println("Forwardng on incoming channel");
 			ths.incoming <- m;
 
 

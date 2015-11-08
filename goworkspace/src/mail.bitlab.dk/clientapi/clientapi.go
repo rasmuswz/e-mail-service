@@ -46,7 +46,7 @@ type ClientAPI struct {
 
 // --------------------------------------------------------
 //
-// Create a Server for the website and ClientApi
+// Creates a Server for the website ClientApi
 //
 //
 //
@@ -85,7 +85,6 @@ func (a *ClientAPI) serve() {
 	mux.HandleFunc("/go.api/login",  a.handleLogin);
 	mux.HandleFunc("/go.api/logout", a.logoutHandler);
 	mux.HandleFunc("/go.api/sendmail", a.sendMailHandler);
-	mux.HandleFunc("/go.api/getmail", a.getMailHandler);
 
 	mux.HandleFunc("/", a.viewHandler);
 
@@ -254,65 +253,6 @@ func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r * http.Request) {
 }
 
 
-// ---------------------------------------------------------
-//
-// Get Emails for logged in user. The query from the client
-// is forwarded to the Back-end for looking up INBOX entries
-// in the JSon-storage.
-//
-// ---------------------------------------------------------
-
-func (a *ClientAPI)getMailHandler(w http.ResponseWriter, r * http.Request) {
-
-	defer r.Body.Close();
-	a.log.Println("Trying to get mails from Inbox");
-
-	if len(r.Header["SessionId"]) < 1 {
-		a.log.Println("No access with out an session id")
-		http.Error(w,"Session ID missing access denied.",http.StatusForbidden);
-		return;
-	}
-	ses := r.Header["sessionId"][0];
-
-	req, reqErr := http.NewRequest("GET",utilities.RECEIVE_BACKEND_LISTEN_FOR_CLIENT_API+"/getmail?SessionId="+ses,r.Body);
-	if reqErr != nil {
-		a.log.Println("Could not create request:"+reqErr.Error());
-		http.Error(w,"Could not create request: "+reqErr.Error(),http.StatusInternalServerError);
-		return;
-	}
-
-	resp,err := http.DefaultClient.Do(req);
-	if err != nil {
-		a.log.Println("Error from backend: "+err.Error());
-		http.Error(w,"Error from backend."+err.Error(),http.StatusInternalServerError);
-		return;
-	}
-
-	data, dataReq := ioutil.ReadAll(resp.Body);
-	if dataReq != nil {
-		a.log.Println("Could not get reponse."+dataReq.Error());
-		http.Error(w,"Damn it could not get response from Receiver Back-end",http.StatusInternalServerError);
-		return;
-	}
-
-	log.Println("We have successfully forwardet a list of emails.");
-	w.Write(data);
-	return;
-
-}
-
-
-func (a *ClientAPI) clientApiHandler(w http.ResponseWriter, r *http.Request) {
-
-	var path string = r.URL.Path;
-
-	if path[strings.LastIndex(path, "/") + 1:len(path)] == "alive" {
-		w.Write([]byte("yes"));
-		r.Body.Close();
-	}
-
-}
-
 func loadFile(filename string) ([]byte, error) {
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -321,6 +261,9 @@ func loadFile(filename string) ([]byte, error) {
 	return body, nil;
 }
 
+//
+// Handler for serving files from the file system
+//
 func (s *ClientAPI) viewHandler(w http.ResponseWriter, r *http.Request) {
 	var extMap map[string]string = map[string]string{"html": "text/html", "css": "text/css", "dart": "application/dart"};
 

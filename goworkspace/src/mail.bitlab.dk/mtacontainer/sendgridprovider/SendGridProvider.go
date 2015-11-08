@@ -1,3 +1,12 @@
+//
+// The SendGrid api used to implement this provider can be
+// found here https://github.com/sendgrid/sendgrid-go.
+//
+//
+// Author: Rasmus Winther Zakarias
+//
+
+
 package sendgridprovider
 import (
 	"mail.bitlab.dk/model"
@@ -7,6 +16,8 @@ import (
 	"github.com/sendgrid/sendgrid-go"
 	"errors"
 	"strings"
+	"mail.bitlab.dk/utilities"
+	"mail.bitlab.dk/utilities/go"
 )
 
 
@@ -58,7 +69,8 @@ func New(log *log.Logger, config map[string]string, fs mtacontainer.FailureStrat
 	result.cmd = make(chan commandprotocol.Command);
 	result.log = log;
 	result.log.Println(result.GetName() + " MTA Going up")
-	result.sg = sendgrid.NewSendGridClientWithApiKey("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");
+	result.sg = sendgrid.NewSendGridClientWithApiKey(
+		utilities.DecryptApiKey(config[SG_CNF_ENC_API_KEY],config[SG_CNF_PASSPHRASE], goh.StrToInt(config[SG_CNF_API_KEY_LEN])))
 	result.failureStrategy = fs;
 	go result.sendingRoutine();
 	return result;

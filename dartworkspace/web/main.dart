@@ -8,13 +8,9 @@
  * business-logical component presented by the view. These are:
  *
  * - LoginWindow
- * - MailWindow
- *    [] list of email on the left
- *    [] main mail-reading window
  * - System Message
  * - SignOut
  * - NoServiceFullScreenErrorMessage
- * - LocationMailingList
  *
  * which are all collected in one ViewController that takes care of
  * Business logic using its sub-controllers.
@@ -30,101 +26,6 @@ import 'dart:async';
 import 'mailmodel.dart';
 import 'bitmailconnection.dart';
 
-/**
- * Controls the MailBox dropdown menu that selects which
- * folder is presently selected.
- */
-class MailBoxSelectController {
-  UListElement view;
-
-  MailBoxSelectController() {
-    view = querySelector("#mail-box-selection");
-  }
-
-  void setOptions(List<String> options) {
-    this.view.children.clear();
-
-    options.forEach((o) {
-      LIElement item = new LIElement();
-      AnchorElement opt = new AnchorElement();
-      opt.href = "#";
-      opt.text = o;
-      item.children.add(opt);
-      this.view.children.add(item);
-    });
-    return;
-  }
-}
-
-class EmailViewItem {
-  Email mail;
-
-  EmailViewItem(this.mail);
-
-  AnchorElement display() {
-    AnchorElement item = new AnchorElement();
-    item.className = "list-group-item";
-
-    // set email from
-    HeadingElement from = new HeadingElement.h4();
-    from.text = mail.From;
-    from.className = "list-group-item-heading";
-    item.children.add(from);
-
-    // set subject
-    ParagraphElement subject = new ParagraphElement();
-    subject.className = "list-group-item-text";
-    subject.text = mail.Subject;
-    item.children.add(subject);
-
-    return item;
-  }
-}
-
-class MailWindowController {
-  DivElement view;
-  DivElement listOfEmails;
-  BitMailModel model;
-  AnchorElement selected;
-  DivElement emailContent;
-  ButtonElement compose;
-  ViewController _viewController;
-
-  MailWindowController(this.model, this._viewController) {
-    view = querySelector("#mail-window");
-    listOfEmails = querySelector("#mail-window-list-of-emails");
-    emailContent = querySelector("#email-content");
-    view.style.display = 'none';
-    compose = querySelector("#mail-window-compose");
-    compose.onClick.listen((e) => _viewController.composeEmail());
-  }
-
-  void displayWindow() {
-    view.style.display = 'block';
-    listOfEmails.children.clear();
-
-    new Timer(new Duration(seconds: 2), () {
-      List<Email> emails = model.loadEmailList(0, 10);
-      emails.forEach((mail) {
-        AnchorElement m = new EmailViewItem(mail).display();
-        listOfEmails.children.add(m);
-        m.onClick.listen((e) {
-          if (selected != null) {
-            selected.className = "list-group-item";
-          }
-          m.className = "list-group-item active";
-          selected = m;
-          emailContent.innerHtml = "${mail.Content}";
-        });
-      });
-    });
-
-  }
-
-  void hideWindow() {
-    view.style.display = 'none';
-  }
-}
 
 class SystemMessageController {
   Element msg;
@@ -254,11 +155,10 @@ class LoginWindowController {
 
 class SignOutController {
   ButtonElement view;
-  MailWindowController mailView;
   BitMailModel model;
   LoginWindowController loginView;
 
-  SignOutController(this.model, this.mailView, this.loginView) {
+  SignOutController(this.model, this.loginView) {
     view = querySelector("#logout");
     view.onClick.listen((e) {
       this.signOut();
@@ -266,7 +166,6 @@ class SignOutController {
   }
 
   void signOut() {
-    mailView.hideWindow();
     loginView.displayWindow();
     model.logOut();
   }
@@ -319,22 +218,8 @@ class GeoMailingListItem {
   }
 }
 
-class LocationMalingListController {
-  DivElement mailingList;
-  BitMailModel model;
-
-  LocationMalingListController(this.model) {
-    this.mailingList = querySelector("#geo-mailing-listts");
-  }
-
-  void populateList() {
-  }
-}
-
 class ViewController {
-  MailWindowController mailWindow;
   LoginWindowController loginWindow;
-  MailBoxSelectController mboxController;
   SignOutController signOut;
   NoServiceFullScreenErrorMessageController completeErrorMessage;
   SystemMessageController systemMessages;
@@ -343,28 +228,16 @@ class ViewController {
   BitMailModel model;
 
   ViewController(this.model) {
-    this.mailWindow = new MailWindowController(model, this);
     this.loginWindow = new LoginWindowController(model, this);
-    this.mboxController = new MailBoxSelectController();
-    this.signOut = new SignOutController(model, mailWindow, loginWindow);
+    this.signOut = new SignOutController(model,loginWindow);
     this.completeErrorMessage = new NoServiceFullScreenErrorMessageController();
     this.systemMessages = new SystemMessageController();
     this.composerWindow = new ComposeEmailWindowController(model, this);
     model.setView(this);
   }
 
-  void browseEmails() {
-    mailWindow.displayWindow();
-    composerWindow.hide();
-  }
-
   void composeEmail() {
-    mailWindow.hideWindow();
     composerWindow.display();
-  }
-
-  void setMailBoxes(List<String> mboxNames) {
-    mboxController.setOptions(mboxNames);
   }
 
   void connectionDown() {
@@ -386,7 +259,6 @@ class ViewController {
   }
 
   void hide() {
-    mailWindow.hideWindow();
     loginWindow.hideWindow();
     completeErrorMessage.hide();
   }

@@ -234,13 +234,11 @@ func checkMatch(db map[string]string, m map[string]string) bool {
 		dbval, ok := db[k];
 
 		if ok == false {
-			println("Looking for key \""+k+"\" but it wasn't found");
 			return false
 		};
 
 		if (strings.Compare("",v) != 0) {
 			if (strings.Compare(dbval, v) != 0) {
-				println("Values for key " + k + " mismatch: asked for " + v + "!=" + dbval);
 				return false;
 			}
 		}
@@ -330,7 +328,6 @@ func NewMemoryStore() JSonStore {
 // ---------------------------------------------------------
 type ProxyStore struct {
 	clientApiEndPoint string;
-
 }
 
 func NewProxyStore(endpoint string) JSonStore {
@@ -342,28 +339,39 @@ func NewProxyStore(endpoint string) JSonStore {
 
 func (ths *ProxyStore) PutJSonBlob(jsonblob map[string]string) uint64 {
 
-	_, jsonStrErr := jsonPackage.Marshal(jsonblob);
+	// TODO(rwz): Marshal {jsonblob}
 
-	if jsonStrErr != nil {
-		// TODO(rwz): We need to log this somewhere
-	}
+	// TODO(rwz): Send serialised PubJSonStore command to {ths.clientApiEndPoint}
 
+	// TODO(rwz): Deserialise uint64
 
-	//jsonPackage.NewEncoder()
 	return 0;
 }
 
 
 func (ths *ProxyStore) GetJSonBlobs(matching map[string]string) []map[string]string {
 
-	return make([]map[string]string, 1);
+	// TODO(rwz): Marshal {matching} and send {GetJSonBlobs} to end point
 
+	//TODO(rwz): Deserialise a list of entries that match
+
+	return make([]map[string]string, 1);
 }
 
 func (ths *ProxyStore) UpdJSonBlob(matching map[string]string, blob map[string]string) (uint64,bool) {
+
+	// TODO(rwz): Marshal {matching} and {blob}
+
+	//TODO(rwz): Deserialise response from server
+
 	return 0,false;
 }
 
 func (ths *ProxyStore) GetById(id uint64) (map[string]string,bool) {
+
+	// TODO(rwz): Serialise {id} to the server
+
+	//TODO(rwz): Deserialise the resulting map
+
 	return nil,false;
 }

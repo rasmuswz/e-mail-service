@@ -2,7 +2,7 @@
 //
 // The ClientApi entry point.
 //
-// This processing will serve browser http requests on http://<domain>:<port>/*
+// The process running this program will serve browser http requests on http://<domain>:<port>/*
 // except the special paths http://<domain>:<port>/go.api/* which will require
 // BasicAuth in the http-header and (if valid) carry out ClientApi commands,
 // like send an e-mail acquire GeoLists or list a range of mail headers from a
