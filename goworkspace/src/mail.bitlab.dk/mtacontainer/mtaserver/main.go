@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 
 	"io/ioutil"
+"strings"
 )
 
 
@@ -81,10 +82,15 @@ func forwardIncomingMailToReceiver(container mtacontainer.MTAContainer) {
 }
 
 func listenForSendBackEnd(container mtacontainer.MTAContainer) {
+	type serEmail struct {
+		Headers map[string]string;
+		Content string;
+	}
 
 	var mux = http.NewServeMux();
 	mux.HandleFunc("/sendmail", func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close();
+
 
 		data, dataErr := ioutil.ReadAll(r.Body);
 		if dataErr != nil {
@@ -93,8 +99,9 @@ func listenForSendBackEnd(container mtacontainer.MTAContainer) {
 			return;
 		}
 
-		var jemail = model.EmailImpl{};
+		var jemail serEmail = serEmail{};
 
+		log.Println("Hey we send things "+string(data));
 
 		err := json.Unmarshal(data, &jemail);
 		if err != nil {
@@ -103,8 +110,11 @@ func listenForSendBackEnd(container mtacontainer.MTAContainer) {
 			return;
 		}
 
-
-		container.GetOutgoing() <- &jemail;
+		tos := strings.Split(jemail.Headers["To"],",");
+		for m := range tos {
+			jemail.Headers["To"] = tos[m];
+			container.GetOutgoing() <- model.NewMailS(jemail.Content, jemail.Headers);
+		}
 
 	});
 
@@ -153,8 +163,8 @@ func main() {
 	//
 	// Start Container (ask for passphrase if necessary)
 	//
-	// var container,scheduler = GetProductionMTAContainer();
-	var container, scheduler = GetLoopBackContainer();
+	 var container,scheduler = GetProductionMTAContainer();
+	//var container, scheduler = GetLoopBackContainer();
 
 	//
 	// Error handling

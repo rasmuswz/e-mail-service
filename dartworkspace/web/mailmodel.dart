@@ -11,7 +11,7 @@
 import 'dart:html';
 import 'dart:async';
 import 'dart:convert';
-import 'geoconnection.dart';
+import 'bitmailconnection.dart';
 import 'main.dart';
 
 /**

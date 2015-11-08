@@ -44,7 +44,7 @@ func GetProductionMTAContainer() (mtacontainer.MTAContainer,mtacontainer.Schedul
 	var mailGunConfig = mailgunprovider.BitLabConfig(passphrase);
 	var amazonConfig = amazonsesprovider.BitLabConfig(passphrase);
 	var sendgridConfig = sendgridprovider.BitLabConfig(passphrase);
-	providers := make([]mtacontainer.MTAProvider, 5);
+	providers := make([]mtacontainer.MTAProvider, 3);
 	providers[0] = mailgunprovider.New(utilities.GetLogger("MailGun"), mailGunConfig,mtacontainer.NewThressHoldFailureStrategy(ERROR_THRESHOLD));
 	providers[1] = amazonsesprovider.New(utilities.GetLogger("amazonSES"), amazonConfig, mtacontainer.NewThressHoldFailureStrategy(ERROR_THRESHOLD));
 	providers[2] = sendgridprovider.New(utilities.GetLogger("SendGrid"), sendgridConfig, mtacontainer.NewThressHoldFailureStrategy(ERROR_THRESHOLD));

@@ -8,15 +8,8 @@ import (
 	"mail.bitlab.dk/model"
 	"log"
 	"github.com/mailgun/mailgun-go"
-	"net/http"
-	"strconv"
 	"errors"
-	"io/ioutil"
-	"time"
 	"mail.bitlab.dk/mtacontainer"
-	"os"
-	"strings"
-
 	"mail.bitlab.dk/utilities"
 	"mail.bitlab.dk/utilities/go"
 )
@@ -58,7 +51,7 @@ type MailGunProvider struct {
 	cmd    chan Cmd;
 	out    chan model.Email;
 	inc    chan model.Email;
-	health chan mtacontainer.Event;
+	events chan mtacontainer.Event;
 	config map[string]string;
 	failureStrategy mtacontainer.FailureStrategy;
 }
@@ -85,7 +78,7 @@ const (
 //
 // ---------------------------------------------------------------
 func (m *MailGunProvider) GetEvent() chan mtacontainer.Event {
-	return m.health;
+	return m.events;
 }
 
 func (m *MailGunProvider) GetIncoming() chan model.Email {
@@ -103,20 +96,21 @@ func (m *MailGunProvider) GetName() string {
 func (m *MailGunProvider) Stop() {
 	m.cmd <- CMD_TERMINATE;
 
-	m.sendMaintanenceMessage("Admin,\nPlease find the MailGun MTA provider is going **down**.");
+	//m.sendMaintanenceMessage("Admin,\nPlease find the MailGun MTA provider is going **down**.");
 
 	// wait for both receiving routine and sending routine to Stop.
 	var c = <-m.cmd;
 	if (c != CMD_RECV_HAS_TERMINATED && c != CMD_SEND_HAS_TERMINATED) {
 		m.log.Println("Unknown message on Cmd channel during shutdown? (Review code)");
 	}
-	c = <-m.cmd;
-	if (c != CMD_RECV_HAS_TERMINATED && c != CMD_SEND_HAS_TERMINATED) {
-		m.log.Println("Unknown message on Cmd channel during shutdown? (Review code)");
-	}
+
+//	c = <-m.cmd;
+//	if (c != CMD_RECV_HAS_TERMINATED && c != CMD_SEND_HAS_TERMINATED) {
+//		m.log.Println("Unknown message on Cmd channel during shutdown? (Review code)");
+//	}
 
 	// make clients know this instance is gone.
-	close(m.health);
+	close(m.events);
 	close(m.cmd);
 	close(m.inc);
 	close(m.out);
@@ -128,6 +122,34 @@ func (m *MailGunProvider) Stop() {
 // Implementation
 //
 // ---------------------------------------------------------------
+func New(log *log.Logger, config map[string]string, fs mtacontainer.FailureStrategy) mtacontainer.MTAProvider {
+	var result *MailGunProvider = new(MailGunProvider);
+
+	result.failureStrategy = fs;
+
+	// -- initialize the result --
+	result.config = config;
+	var apiKey = utilities.DecryptApiKey(config[MG_CNF_PASSPHRASE], config[MG_CNF_ENCRYPTED_APIKEY],
+		goh.StrToInt(config[MG_CNF_ENCRYPTED_APIKEY_LEN]));
+
+	result.mg = mailgun.NewMailgun(config[MG_CNF_DOMAIN_TO_SERVE], apiKey, "");
+	result.log = log;
+
+	// setup channels
+	result.out = make(chan model.Email);
+	result.inc = make(chan model.Email);
+	result.cmd = make(chan Cmd);
+	result.events = make(chan mtacontainer.Event);
+
+	// for routines to serve
+	go result.sendingRoutine();
+	//go result.receivingRoutine();
+
+	// send initial "MG is in the Air"-message to Admin
+	//result.sendMaintanenceMessage("Admin,\nPlease find the MailGun MTA provider is up.");
+
+	return result;
+}
 
 
 // ---------------------------------------------------------------
@@ -148,13 +170,9 @@ func (mgp *MailGunProvider) sendingRoutine() {
 			mgp.mgSend(email);
 		}
 	}
-
 }
 
 func (mgp *MailGunProvider) mgSend(m model.Email) {
-
-
-
 
 	var message = mgp.mg.NewMessage(m.GetHeader(model.EML_HDR_FROM),
 		m.GetHeader(model.EML_HDR_SUBJECT),
@@ -166,34 +184,38 @@ func (mgp *MailGunProvider) mgSend(m model.Email) {
 		}
 	}
 
+	mgp.log.Println("Invoking MailGun API to send e-mail");
 	var mm, mailId, err = mgp.mg.Send(message);
 
 
 	// report MailGunProvider as down
 	if err != nil {
+		mgp.log.Println("MG Failed to send e-mail");
 		mgp.log.Println(err.Error())
 		if (mgp.failureStrategy.Failure(mtacontainer.EK_CRITICAL) == false) {
-			mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
+			mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
 		} else {
 			mgp.Stop(); // we are officially going down
-			mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, err);
+			mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, err);
 			mgp.log.Println("The MailGun Provider is considered Down.");
-			mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT,errors.New("MailGun is down for sending"),m);
+			mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT,errors.New("MailGun is down for sending"),m);
 			for e := range mgp.out {
 				var ee model.Email = e;
-				mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT,errors.New("MailGun is down for sending"),ee);
+				mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT,errors.New("MailGun is down for sending"),ee);
 			}
 
 
 		}
 	} else {
+		mgp.log.Println("MG Has sent email with success.");
 		mgp.failureStrategy.Success();
-		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_BEAT,
+		mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_BEAT,
 			errors.New("MailGun says: " + mm + " for sending message giving it id " + mailId));
+		mgp.log.Println("After sending event on event channel");
 
 	}
 }
-
+/*
 // ---------------------------------------------------------------
 // Receiving E-mails and Health information (WebHooks)
 // ---------------------------------------------------------------
@@ -239,7 +261,7 @@ func (mgp *MailGunProvider) receivingRoutine() {
 		if (e == nil) {
 			mgp.log.Println("We are looking for: " + d + "/cert.pem "); }
 		mgp.log.Println("Error: " + err.Error());
-		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
+		mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
 	}
 
 	mgp.log.Println("MailGun provider online.");
@@ -287,7 +309,7 @@ func (mgp *MailGunProvider) checkRoute() bool {
 	if err != nil {
 		mgp.log.Println("Error: service failed in reporting routes:\n" + err.Error() + "\n" +
 		"Terminating receiving routine.");
-		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
+		mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
 		return false;
 	}
 
@@ -303,13 +325,13 @@ func (mgp *MailGunProvider) checkRoute() bool {
 			action := route.Actions[a];
 			if (strings.Compare(action, mgp.config[MG_CNF_ROUTE_ACTION_ON_INCOMING_MAIL]) == 0) {
 				routeFound = true;
-				mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_OK,
+				mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_OK,
 					errors.New("Everything is fine, we found the route."));
 			}
 		}
 	}
 	if (routeFound == false) {
-		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY,
+		mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY,
 			errors.New("forward(\"https://mail.bitlab.dk:"+utilities.MTA_MAILGUN_SERVICE_PORT+"msg\") route not found"));
 		return false;
 	}
@@ -327,14 +349,14 @@ func (mgp *MailGunProvider) checkAndAddHook(hook string, fn serveFn) http.Handle
 	hooks, err := mgp.mg.GetWebhooks();
 
 	if (err != nil) {
-		mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
+		mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
 		return nil;
 	}
 
 	if (hooks[hook] == "") {
 		err = mgp.mg.CreateWebhook(hook, "https://mail.bitlab.dk"+utilities.MTA_MAILGUN_SERVICE_PORT+"/" + hook);
 		if (err != nil) {
-			mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
+			mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
 			// TODO(rwz): Consider whether this is the proper action.
 		}
 	}
@@ -379,7 +401,7 @@ func (mgh *MGIncomingMessageHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	var incoming = model.NewEmailFlattenHeaders(bodyString, model.EML_HDR_TO, r.Header[model.EML_HDR_TO][0], model.EML_HDR_FROM, r.Header[model.EML_HDR_FROM][0]);
 
 	mgh.mgp.inc <- incoming;
-	mgh.mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_BEAT, errors.New("Mail service is alive and delivered a message."));
+	mgh.mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_BEAT, errors.New("Mail service is alive and delivered a message."));
 
 	mgh.mgp.log.Println("Handling e-mail took: " + start.Sub(time.Now()).String());
 }
@@ -400,38 +422,8 @@ func (mgp *MailGunProvider) sendMaintanenceMessage(msg string) {
 
 
 
-// Construct a Mail Gun Provider
 
 
-func n(log *log.Logger, config map[string]string, fs mtacontainer.FailureStrategy) mtacontainer.MTAProvider {
-	var result *MailGunProvider = new(MailGunProvider);
 
-	result.failureStrategy = fs;
 
-	// -- initialize the result --
-	result.config = config;
-	var apiKey = utilities.DecryptApiKey(config[MG_CNF_PASSPHRASE], config[MG_CNF_ENCRYPTED_APIKEY],
-		goh.StrToInt(config[MG_CNF_ENCRYPTED_APIKEY_LEN]));
-
-	result.mg = mailgun.NewMailgun(config[MG_CNF_DOMAIN_TO_SERVE], apiKey, "");
-	result.log = log;
-
-	// setup channels
-	result.out = make(chan model.Email);
-	result.inc = make(chan model.Email);
-	result.cmd = make(chan Cmd);
-	result.health = make(chan mtacontainer.Event);
-
-	// for routines to serve
-	go result.sendingRoutine();
-	go result.receivingRoutine();
-
-	// send initial "MG is in the Air"-message to Admin
-	result.sendMaintanenceMessage("Admin,\nPlease find the MailGun MTA provider is up.");
-
-	return result;
-}
-
-func New(log *log.Logger, config map[string]string, failureStrategy mtacontainer.FailureStrategy) mtacontainer.MTAProvider {
-	return n(log,config,failureStrategy);
-}
+*/

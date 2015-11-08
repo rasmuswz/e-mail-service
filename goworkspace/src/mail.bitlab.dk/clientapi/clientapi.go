@@ -227,7 +227,7 @@ func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r * http.Request) {
 		return;
 	}
 
-	request.Header["Content-Length"] = []string{goh.IntToStr(len(rawdata))};
+	//request.Header["Content-Length"] = []string{goh.IntToStr(len(rawdata))};
 
 
 	if requestError != nil {
@@ -265,6 +265,7 @@ func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r * http.Request) {
 func (a *ClientAPI)getMailHandler(w http.ResponseWriter, r * http.Request) {
 
 	defer r.Body.Close();
+	a.log.Println("Trying to get mails from Inbox");
 
 	if len(r.Header["SessionId"]) < 1 {
 		a.log.Println("No access with out an session id")
@@ -275,18 +276,21 @@ func (a *ClientAPI)getMailHandler(w http.ResponseWriter, r * http.Request) {
 
 	req, reqErr := http.NewRequest("GET",utilities.RECEIVE_BACKEND_LISTEN_FOR_CLIENT_API+"/getmail?SessionId="+ses,r.Body);
 	if reqErr != nil {
+		a.log.Println("Could not create request:"+reqErr.Error());
 		http.Error(w,"Could not create request: "+reqErr.Error(),http.StatusInternalServerError);
 		return;
 	}
 
 	resp,err := http.DefaultClient.Do(req);
 	if err != nil {
-		http.Error(w,err.Error(),http.StatusInternalServerError);
+		a.log.Println("Error from backend: "+err.Error());
+		http.Error(w,"Error from backend."+err.Error(),http.StatusInternalServerError);
 		return;
 	}
 
 	data, dataReq := ioutil.ReadAll(resp.Body);
 	if dataReq != nil {
+		a.log.Println("Could not get reponse."+dataReq.Error());
 		http.Error(w,"Damn it could not get response from Receiver Back-end",http.StatusInternalServerError);
 		return;
 	}

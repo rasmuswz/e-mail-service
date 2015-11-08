@@ -251,18 +251,33 @@ def buildGo():
     tag = make_git_tag()
     build_goworkspace(tag);
 
+@task
+def buildDart():
+    """Build only the Dart workspace"""
+    tag = make_git_tag()
+    build_dartworkspace(tag);
+
+
 #
 # Run the Go tests locally
 #
+@task
 def test():
     """Run the test suite in the go-workspace locally"""
-    build_goworkspace();
-    with cd("goworkspace"):
-        local("go test");
+    tag = make_git_tag()
+    build_goworkspace(tag);
+    path = os.environ["PATH"];
+    path = path + ":" + os.path.realpath("thirdparty/go/bin")
+    path = path + ":" + os.path.realpath("thirdparty/dart-sdk/bin");
+    with lcd("goworkspace"):
+        with shell_env(GOPATH=os.path.realpath("goworkspace"),
+                       PATH=path):
+            local("go test ./...");
 
 #
 # Run tests that require manuel validation
 #
+@task
 def test_manuel():
     """Testing the concrete MTA providers, this involves checking an e-mail arrives in a real INBOX"""
     key=getpass("Please enter the start-up passphrase to unlock API keys:");

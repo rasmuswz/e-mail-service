@@ -28,7 +28,7 @@
 import 'dart:html';
 import 'dart:async';
 import 'mailmodel.dart';
-import 'geoconnection.dart';
+import 'bitmailconnection.dart';
 
 /**
  * Controls the MailBox dropdown menu that selects which
@@ -102,19 +102,23 @@ class MailWindowController {
   void displayWindow() {
     view.style.display = 'block';
     listOfEmails.children.clear();
-    List<Email> emails = model.loadEmailList(0, 10);
-    emails.forEach((mail) {
-      AnchorElement m = new EmailViewItem(mail).display();
-      listOfEmails.children.add(m);
-      m.onClick.listen((e) {
-        if (selected != null) {
-          selected.className = "list-group-item";
-        }
-        m.className = "list-group-item active";
-        selected = m;
-        emailContent.innerHtml = "${mail.Content}";
+
+    new Timer(new Duration(seconds: 2), () {
+      List<Email> emails = model.loadEmailList(0, 10);
+      emails.forEach((mail) {
+        AnchorElement m = new EmailViewItem(mail).display();
+        listOfEmails.children.add(m);
+        m.onClick.listen((e) {
+          if (selected != null) {
+            selected.className = "list-group-item";
+          }
+          m.className = "list-group-item active";
+          selected = m;
+          emailContent.innerHtml = "${mail.Content}";
+        });
       });
     });
+
   }
 
   void hideWindow() {
@@ -180,7 +184,7 @@ class ComposeEmailWindowController {
   void _handleCancelClick() {
     this.hide();
     this._reset();
-    _viewController.display();
+    _viewController.signOut.signOut();
   }
 
   void _handleSendClick() {
@@ -232,7 +236,7 @@ class LoginWindowController {
       var ok = model.logIn(username.value, password.value);
       if (ok) {
         this.hideWindow();
-        viewController.browseEmails();
+        viewController.composeEmail();
       } else {
         viewController.setSystemMessage("Login failed");
       }
@@ -375,7 +379,7 @@ class ViewController {
 
   void display() {
     if (model.IsLoggedIn) {
-      mailWindow.displayWindow();
+      composeEmail();
     } else {
       loginWindow.displayWindow();
     }

@@ -87,6 +87,7 @@ func New(log *log.Logger, config map[string]string, fs mtacontainer.FailureStrat
 	result.incoming = make(chan model.Email);
 	result.outgoing = make(chan model.Email);
 	result.events = make(chan mtacontainer.Event);
+	result.command = make(chan commandprotocol.Command);
 	result.failureStrategy = fs;
 	awsLogger := aws.NewDefaultLogger();
 	myCredentials := credentials.NewStaticCredentials(config[AWS_CNF_API_KEY_ID],
@@ -158,7 +159,7 @@ func (ths *AmazonMtaProvider) serviceSendingEmails() {
 			}
 
 			log.Println(resp);
-
+			ths.events <- mtacontainer.NewEvent(mtacontainer.EK_BEAT,errors.New("Mail successfully sent"),ths);
 			ths.failureStrategy.Success();
 		}
 

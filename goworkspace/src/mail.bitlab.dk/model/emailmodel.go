@@ -4,6 +4,7 @@ import (
 	"strings"
 	"net/mail"
 	"io/ioutil"
+	"log"
 )
 /**
  *
@@ -115,4 +116,19 @@ func NewMail(content string, headers map[string][]string) Email {
 	result.content = content;
 	result.headers = headers;
 	return result;
+}
+
+func NewMailS(content string, headers map[string]string) Email {
+
+	mail := new(EmailImpl);
+	mail.headers = make(map[string][]string);
+	mail.content = content;
+
+	for k,v := range headers {
+		log.Println("setting header ["+k+"]="+v);
+		mail.headers[k] = []string{v};
+	}
+
+	return mail;
+
 }

@@ -77,7 +77,7 @@ QueryResponse _GetQuery(String path, String data, Map<String, String> headers) {
     return new QueryResponse.Ok(req.responseText);
   } else {
     // not fine, write error to browser JS-console.
-    print("StatusText:"+req.statusText);
+    print("StatusText:"+req.statusText+" "+req.responseText);
     return new QueryResponse.Fail(req.statusText);
   }
 

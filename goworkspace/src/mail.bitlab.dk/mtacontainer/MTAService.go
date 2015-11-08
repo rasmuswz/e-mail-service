@@ -11,12 +11,7 @@ package mtacontainer
 import (
 	"mail.bitlab.dk/model"
 	"time"
-	"net/http"
-	"mail.bitlab.dk/utilities"
 	"log"
-	"encoding/json"
-	"io/ioutil"
-	"errors"
 )
 
 type EventKind uint32;
@@ -306,39 +301,41 @@ func New(scheduler Scheduler) MTAContainer {
 	return result;
 }
 
-func (ths *DefaultMTAContainer) receiveMailToBeSentFromSendBackEnd(w http.ResponseWriter, r *http.Request) {
-
-	defer r.Body.Close();
-	var mail model.EmailImpl = model.EmailImpl{};
-	var data, dataErr = ioutil.ReadAll(r.Body);
-	if dataErr != nil {
-		ths.events <- NewEvent(EK_WARNING,dataErr,ths);
-		http.Error(w,dataErr.Error(),http.StatusInternalServerError);
-		return ;
-	}
-
-	mailErr := json.Unmarshal(data,&mail);
-	if mailErr != nil {
-		ths.events <- NewEvent(EK_WARNING,errors.New("Malformed email"),ths);
-		http.Error(w,"Malformed email cannot send",http.StatusBadRequest);
-		return;
-	}
-
-	ths.events <- NewEvent(EK_OK,errors.New("Forwarding Email to the MTAs."),ths);
-
-	ths.GetOutgoing() <- &mail;
-
-}
-
-func (ths *DefaultMTAContainer) ListForSendBackEnd() {
-
-	var mux = http.NewServeMux();
-	mux.HandleFunc("/sendmail", ths.receiveMailToBeSentFromSendBackEnd);
-
-	err := http.ListenAndServe(utilities.MTA_LISTENS_FOR_SEND_BACKEND, mux);
-	if err != nil {
-		log.Fatalln("Could not listen for Send Back End: " + err.Error());
-	}
-
-}
+//func (ths *DefaultMTAContainer) receiveMailToBeSentFromSendBackEnd(w http.ResponseWriter, r *http.Request) {
+//
+//
+//
+//	defer r.Body.Close();
+//
+//	var data, dataErr = ioutil.ReadAll(r.Body);
+//	if dataErr != nil {
+//		ths.events <- NewEvent(EK_WARNING,dataErr,ths);
+//		http.Error(w,dataErr.Error(),http.StatusInternalServerError);
+//		return ;
+//	}
+//
+//	log.Println("### EMAIL: "+string(data)+" \n");
+//
+//	mailErr := json.Unmarshal(data,&email);
+//	if mailErr != nil {
+//		ths.events <- NewEvent(EK_WARNING,errors.New("Malformed email"),ths);
+//		http.Error(w,"Malformed email cannot send",http.StatusBadRequest);
+//		return;
+//	}
+//
+//	ths.events <- NewEvent(EK_OK,errors.New("Forwarding Email to the MTAs."),ths);
+//	ths.GetOutgoing() <- model.NewMailS(email.content,email.headers);
+//
+//}
+//
+//func (ths *DefaultMTAContainer) ListForSendBackEnd() {
+//
+//	var mux = http.NewServeMux();
+//	mux.HandleFunc("/sendmail", ths.receiveMailToBeSentFromSendBackEnd);
+//	err := http.ListenAndServe(utilities.MTA_LISTENS_FOR_SEND_BACKEND, mux);
+//	if err != nil {
+//		log.Fatalln("Could not listen for Send Back End: " + err.Error());
+//	}
+//
+//}
 
