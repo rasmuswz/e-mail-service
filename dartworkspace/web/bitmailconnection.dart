@@ -100,7 +100,7 @@ class ClientAPI {
   ClientAPI(String path) {
     this._path = path;
     _previousAlive = false;
-    new Timer.periodic(new Duration(seconds: 2), _check);
+    new Timer.periodic(new Duration(seconds: 5), _check);
     this.stateListeners = new List<ConnectionListener>();
   }
 
