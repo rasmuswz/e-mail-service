@@ -11,6 +11,7 @@ import (
 	"strings"
 //	"net/http"
 	"encoding/base64"
+	"mail.bitlab.dk/model"
 )
 
 
@@ -151,7 +152,7 @@ type EmailBlob struct {
 	To      string;
 	From    string;
 	Content string;
-	Uid     string;
+	Headers map[string]string;
 }
 
 func (ths *EmailBlob) ToJSonMap() map[string]string {
@@ -161,7 +162,9 @@ func (ths *EmailBlob) ToJSonMap() map[string]string {
 	result["To"] = ths.To;
 	result["From"] = ths.From;
 	result["Content"] = ths.Content;
-	result["Uid"] = ths.Uid;
+	for k,v := range ths.Headers {
+		result[k] = v;
+	}
 	return result;
 }
 
@@ -172,12 +175,24 @@ func NewEmailBlobFromJSonMap(m map[string]string ) *EmailBlob{
 	result.To = m["To"];
 	result.From = m["From"];
 	result.Content = m["Content"];
-	result.Uid = m["Uid"];
 	return result;
 }
 
 func NewEmailBlobForFindingMBox(mbox string) *EmailBlob{
 	return NewEmailBlob(mbox,"","","","");
+}
+
+func NewEmailBlobFromEmail(email model.Email) *EmailBlob{
+
+	result := new(EmailBlob);
+	result.Mbox = model.MBOX_NAME_INBOX;
+	result.Subject = email.GetHeader(model.EML_HDR_SUBJECT);
+	result.To = email.GetHeader(model.EML_HDR_TO);
+	result.From = email.GetHeader(model.EML_HDR_FROM);
+	result.Content = email.GetContent();
+
+	return result;
+
 }
 
 func NewEmailBlob(mbox, subject, to, from,content string ) *EmailBlob {
@@ -197,7 +212,6 @@ func EmailBlobFromJSonMap(m map[string]string) *EmailBlob {
 	result.To = m["To"];
 	result.From = m["From"];
 	result.Content = m["Content"];
-	result.Uid = m["Uid"];
 	return result;
 }
 

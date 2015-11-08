@@ -14,10 +14,8 @@ func forwardToReceiver(mail model.Email) {
 
 	log.Println("Received email for delivery, forwarding it to Receive Backend");
 
-	jemail := model.EmailImpl{ Headers: mail.GetHeaders(),
-									   Content: mail.GetContent()};
 
-	serJemail,errSerJemail := json.Marshal(jemail);
+	serJemail,errSerJemail := json.Marshal(mail);
 	if errSerJemail != nil {
 		println("Cannot serialise message.");
 		return;

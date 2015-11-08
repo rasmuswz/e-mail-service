@@ -297,8 +297,8 @@ func (ths *ReceiveBackEnd) StoreMailsInStore() {
 		select {
 		case mail := <-ths.incoming:
 			println("Incoming mail for delivery:");
-			var mailHeaders = mail.GetHeaders();
-			var username = getNameFromEmail(mailHeaders[model.EML_HDR_TO]);
+
+			var username = getNameFromEmail(mail.GetHeader(model.EML_HDR_TO));
 			var users = ths.store.GetJSonBlobs(UserBlobNew(username, "").ToJSonMap());
 
 			if len(users) < 1 {
@@ -308,7 +308,12 @@ func (ths *ReceiveBackEnd) StoreMailsInStore() {
 
 			for i := range users {
 				log.Println("Delivering mail to " + users[i]["Username"]);
-				blob := NewEmailBlob(NewMBox(username, model.MBOX_NAME_INBOX).UniqueID, mailHeaders[model.EML_HDR_SUBJECT], mailHeaders[model.EML_HDR_TO], mailHeaders[model.EML_HDR_FROM], mail.GetContent());
+				blob := NewEmailBlob(NewMBox(username,
+					model.MBOX_NAME_INBOX).UniqueID,
+					mail.GetHeader(model.EML_HDR_SUBJECT),
+					mail.GetHeader(model.EML_HDR_TO),
+					mail.GetHeader(model.EML_HDR_FROM),
+					mail.GetContent());
 				ths.store.PutJSonBlob(blob.ToJSonMap());
 			}
 		case cmd := <-ths.cmd:

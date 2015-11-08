@@ -1,5 +1,9 @@
 package goh
-import "strconv"
+import (
+	"strconv"
+	"os"
+	"bufio"
+)
 
 
 func IntToStr(i int) string {
@@ -15,4 +19,15 @@ func StrToInt(s string) int {
 	}
 
 	return i;
+}
+
+func ReadLine(prompt string) string {
+	print(prompt);
+
+	line,_,err := bufio.NewReader(os.Stdin).ReadLine();
+	if err != nil {
+		return "";
+	}
+
+	return string(line);
 }

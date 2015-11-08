@@ -152,12 +152,20 @@ func (mgp *MailGunProvider) sendingRoutine() {
 }
 
 func (mgp *MailGunProvider) mgSend(m model.Email) {
-	var headers = m.GetHeaders();
 
-	var message = mgp.mg.NewMessage(headers[model.EML_HDR_FROM],
-		headers[model.EML_HDR_SUBJECT],
+
+
+
+	var message = mgp.mg.NewMessage(m.GetHeader(model.EML_HDR_FROM),
+		m.GetHeader(model.EML_HDR_SUBJECT),
 		m.GetContent(),
-		model.EML_HDR_TO);
+		m.GetHeader(model.EML_HDR_TO));
+	for k,_ := range m.GetHeaders() {
+		if k != model.EML_HDR_SUBJECT && k != model.EML_HDR_FROM {
+			message.AddHeader(k, m.GetHeader(k));
+		}
+	}
+
 	var mm, mailId, err = mgp.mg.Send(message);
 
 
@@ -359,6 +367,8 @@ func (mgh *MGIncomingMessageHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	var start = time.Now();
 	mgh.mgp.log.Println("Incoming e-mail processing it, stand by ...");
 
+
+
 	var rawBody, err = ioutil.ReadAll(r.Body);
 	if (err != nil) {
 		mgh.mgp.log.Println("Error: while retrieving mail from request: " + err.Error());
@@ -366,7 +376,7 @@ func (mgh *MGIncomingMessageHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	}
 	var bodyString = string(rawBody);
 
-	var incoming = model.NewEmail(bodyString, model.EML_HDR_TO, r.Header[model.EML_HDR_TO][0], model.EML_HDR_FROM, r.Header[model.EML_HDR_FROM][0]);
+	var incoming = model.NewEmailFlattenHeaders(bodyString, model.EML_HDR_TO, r.Header[model.EML_HDR_TO][0], model.EML_HDR_FROM, r.Header[model.EML_HDR_FROM][0]);
 
 	mgh.mgp.inc <- incoming;
 	mgh.mgp.health <- mtacontainer.NewEvent(mtacontainer.EK_BEAT, errors.New("Mail service is alive and delivered a message."));
@@ -381,7 +391,7 @@ func newMgIncomingHandler(mgp *MailGunProvider) http.Handler {
 }
 
 func (mgp *MailGunProvider) sendMaintanenceMessage(msg string) {
-	var goingUpMessage = model.NewEmail(msg,
+	var goingUpMessage = model.NewEmailFlattenHeaders(msg,
 		model.EML_HDR_FROM, "mailgun@mail.bitlab.dk",
 		model.EML_HDR_TO, mgp.config[MG_CONF_HEALTH_NOTIFY_EMAIL],
 		model.EML_HDR_SUBJECT, "[MailGun] Provider starting up");
@@ -393,14 +403,18 @@ func (mgp *MailGunProvider) sendMaintanenceMessage(msg string) {
 // Construct a Mail Gun Provider
 
 
-func n(log *log.Logger, config map[string]string) mtacontainer.MTAProvider {
+func n(log *log.Logger, config map[string]string, fs mtacontainer.FailureStrategy) mtacontainer.MTAProvider {
 	var result *MailGunProvider = new(MailGunProvider);
 
+	result.failureStrategy = fs;
 
 	// -- initialize the result --
 	result.config = config;
 	var apiKey = utilities.DecryptApiKey(config[MG_CNF_PASSPHRASE], config[MG_CNF_ENCRYPTED_APIKEY],
-		goh.StrToInt(MG_CNF_ENCRYPTED_APIKEY_LEN));
+		goh.StrToInt(config[MG_CNF_ENCRYPTED_APIKEY_LEN]));
+
+		print("MG: "+apiKey);
+
 	result.mg = mailgun.NewMailgun(config[MG_CNF_DOMAIN_TO_SERVE], apiKey, "");
 	result.log = log;
 
@@ -420,6 +434,6 @@ func n(log *log.Logger, config map[string]string) mtacontainer.MTAProvider {
 	return result;
 }
 
-func New(log *log.Logger, config map[string]string) mtacontainer.MTAProvider {
-	return n(log,config);
+func New(log *log.Logger, config map[string]string, failureStrategy mtacontainer.FailureStrategy) mtacontainer.MTAProvider {
+	return n(log,config,failureStrategy);
 }

@@ -67,5 +67,6 @@ func DecryptApiKey(passphrase string, encryptedKeyB64 string, apiKeyLen int) str
 	var plaintext = make([]byte, len(cipherText));
 	aesBlockCipherCounterMode.XORKeyStream(plaintext, cipherText);
 
+
 	return string(plaintext[:apiKeyLen]);
 }

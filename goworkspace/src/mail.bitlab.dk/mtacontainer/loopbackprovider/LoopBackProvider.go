@@ -32,7 +32,7 @@ type LoopBackProvider struct {
 
 
 func (ths *LoopBackProvider) Stop() {
-
+	ths.command <- commandprotocol.CMD_MTA_PROVIDER_SHUTDOWN;
 }
 
 func (ths *LoopBackProvider) GetOutgoing() chan model.Email {
@@ -53,13 +53,22 @@ func (ths * LoopBackProvider) GetName() string {
 
 
 
-func New(log *log.Logger) mtacontainer.MTAProvider {
+func New(log *log.Logger, fs mtacontainer.FailureStrategy) mtacontainer.MTAProvider {
+
+	if fs == nil {
+		return nil;
+	}
+
+	if log == nil {
+		return nil;
+	}
+
 	var result = new(LoopBackProvider);
 	result.incoming = make(chan model.Email);
 	result.outgoing = make(chan model.Email);
 	result.events = make(chan mtacontainer.Event);
-
-	log.Println(result.GetName() + " MTA Going up")
+	result.command = make(chan commandprotocol.Command);
+	result.failureStrategy = fs;
 	go result.handleOutgoingMessages();
 	return result;
 }
@@ -67,11 +76,12 @@ func New(log *log.Logger) mtacontainer.MTAProvider {
 
 
 func (ths *LoopBackProvider) handleOutgoingMessages() {
-
+	log.Println("Entering handleOutgoingMessages.");
 	for {
 		select {
 
 		case m := <-ths.outgoing:
+		log.Println("An outgoing event arrived.")
 			if ths.failureStrategy.Failure(mtacontainer.EK_OK) == true {
 				//Oh no we failed
 				close(ths.outgoing);
@@ -96,6 +106,7 @@ func (ths *LoopBackProvider) handleOutgoingMessages() {
 
 
 		case c := <-ths.command:
+		log.Println("Got a command");
 			if c == commandprotocol.CMD_MTA_PROVIDER_SHUTDOWN {
 				ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, errors.New("Going down, SHUT DOWN Command"),
 					ths);

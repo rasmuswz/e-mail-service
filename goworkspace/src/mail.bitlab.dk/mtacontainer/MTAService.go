@@ -186,8 +186,8 @@ type MTAProvider interface {
  * Furthermore the MTAContainer provides a health service.
  */
 type MTAContainer interface {
-	getProviders() []MTAProvider;
-	setScheduler(scheduler Scheduler);
+	GetProviders() []MTAProvider;
+	SetScheduler(scheduler Scheduler);
 	MTAService;
 	HealthService;
 }
@@ -215,11 +215,11 @@ type DefaultMTAContainer struct {
 }
 
 
-func (d *DefaultMTAContainer) getProviders() []MTAProvider {
+func (d *DefaultMTAContainer) GetProviders() []MTAProvider {
 	return d.providers;
 }
 
-func (d *DefaultMTAContainer) setScheduler(scheduler Scheduler) {
+func (d *DefaultMTAContainer) SetScheduler(scheduler Scheduler) {
 	d.scheduler = scheduler;
 }
 

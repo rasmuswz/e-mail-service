@@ -9,6 +9,9 @@ import (
 	"mail.bitlab.dk/utilities/go"
 	"errors"
 	"github.com/aws/aws-sdk-go/aws"
+//	"time"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"time"
 );
 
@@ -28,7 +31,7 @@ type AmazonMtaProvider struct {
 	outgoing        chan model.Email;
 	events          chan mtacontainer.Event;
 	command         chan commandprotocol.Command;
-	amazonApi       ses.SES;
+	amazonApi       *ses.SES;
 	log             *log.Logger;
 	failureStrategy mtacontainer.FailureStrategy;
 }
@@ -72,16 +75,25 @@ func New(log *log.Logger, fs mtacontainer.FailureStrategy) mtacontainer.MTAProvi
 	result.outgoing = make(chan model.Email);
 	result.events = make(chan mtacontainer.Event);
 	result.failureStrategy = fs;
+	awsLogger := aws.NewDefaultLogger();
+	myCredentials := credentials.NewStaticCredentials("AKIAIOEC74OYKB7VQNYQ", "5AKPej5pbSM2xaHgkG1Nzp5tPcRwztQ5Le8jqRsc", "");
+	mySession := session.New(&aws.Config{Region: aws.String("us-west-2"), Credentials: myCredentials, Logger: awsLogger});
+	result.amazonApi = ses.New(mySession);
+	if result.amazonApi == nil {
+		return nil;
+	}
 	go result.serviceSendingEmails();
 	log.Println(result.GetName() + " MTA Going up")
-
 	return result;
 }
 
 
+// ------------------------------------------------------------
+//
+// We use the Amazon SeS function SendEmail found here
 //
 //
-//
+// ------------------------------------------------------------
 func (ths *AmazonMtaProvider) serviceSendingEmails() {
 	for {
 		select {
@@ -101,48 +113,28 @@ func (ths *AmazonMtaProvider) serviceSendingEmails() {
 					errors.New("I do not understand the command: " + goh.IntToStr(int(cmd))), ths);
 			}
 
-		case mailToSend := <-ths.outgoing:
+		case mail := <-ths.outgoing:
 
 
-		var headers map[string]string = mailToSend.GetHeaders();
-		//
-		// Handle outgoing email, e.g. forward it to AmazonSes
-		//
-			e := ses.SendEmailInput{
-				Destination: &ses.Destination{
-					ToAddresses: []*string{
-						aws.String(headers[model.EML_HDR_TO]),
-					},
-				},
-				Message: &ses.Message{
-					Body: &ses.Body{
-						Text: &ses.Content{
-							Charset: aws.String("UTF-8"),
-							Data: aws.String(mailToSend.GetContent()),
-						},
-					},
-					Subject: &ses.Content{
-						Data: aws.String(headers[model.EML_HDR_SUBJECT]),
-						Charset: aws.String("UTF-8"),
-					},
-				},
-				Source: aws.String(headers[model.EML_HDR_FROM]),
-			};
+			params := &ses.SendRawEmailInput{RawMessage: &ses.RawMessage {
+				Data: mail.GetRaw(),
+			} };
 
 
-			resp, err := ths.amazonApi.SendEmail(&e);
+			resp, err := ths.amazonApi.SendRawEmail(params)
+
 			if err != nil {
-				ths.log.Println("[Critical] Failed to send E-mail. Please examine !!!",err.Error());
+				ths.log.Println("[Critical] Failed to send E-mail. Please examine !!!", err.Error());
 
 				if (ths.failureStrategy.Failure(mtacontainer.EK_CRITICAL) == false) {
 					ths.events <- mtacontainer.NewEvent(mtacontainer.EK_WARNING, err, ths);
 					// critical failure, fallback
 					time.Sleep(time.Second * 2);
 					// resubmit e-mail to the service
-					ths.outgoing <- mailToSend;
+					//ths.outgoing <- mailToSend;
 				} else {
 					// Report Amazon SES as down, Ask the MTA to fail over this service.
-					ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL,err,mailToSend);
+					//ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, err, mailToSend);
 					ths.log.Println("Amazon Service Provider had too many errors and shuts down.");
 					ths.Stop();
 				}
@@ -150,6 +142,7 @@ func (ths *AmazonMtaProvider) serviceSendingEmails() {
 			}
 
 			log.Println(resp);
+
 			ths.failureStrategy.Success();
 		}
 

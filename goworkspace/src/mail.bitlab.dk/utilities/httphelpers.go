@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"encoding/base64"
 	"encoding/json"
-	"io"
 )
 
 //

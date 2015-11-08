@@ -39,60 +39,59 @@ import subprocess
 # Note! Go create platform specific binaries meaning that we need to
 # deploy the source and rebuild it on the production environment.
 #
-buildCmdPrefix="go install mail.bitlab.dk/";
+buildCmdPrefix = "go install mail.bitlab.dk/";
+
+
 def build_goworkspace(tag):
-    path=os.environ["PATH"];
-    path=path+":"+os.path.realpath("thirdparty/go/bin")
-    path=path+":"+os.path.realpath("thirdparty/dart-sdk/bin");
+    path = os.environ["PATH"];
+    path = path + ":" + os.path.realpath("thirdparty/go/bin")
+    path = path + ":" + os.path.realpath("thirdparty/dart-sdk/bin");
+
+    with lcd("goworkspace"):
+        with shell_env(GOPATH=os.path.realpath("goworkspace"),
+                       PATH=path):
+            local("go get github.com/mailgun/mailgun-go");
+            local("go get github.com/aws/aws-sdk-go/service/ses");
+            local("go get github.com/sendgrid/sendgrid-go");
+            local(buildCmdPrefix + "backend/backendserver");
+            local(buildCmdPrefix + "clientapi/clientapiserver");
+            local(buildCmdPrefix + "mtacontainer/mtaserver");
+            local("tar cmvzf ../go_" + tag + ".tgz --exclude .git ./src");
 
 
-    if not exists("go_"+tag+".tgz"):
-        with lcd("goworkspace"):
-            with shell_env(GOPATH=os.path.realpath("goworkspace"),
-                           PATH=path):
-
-                local("go get github.com/mailgun/mailgun-go");
-                local("go get github.com/aws/aws-sdk-go/service/ses");
-                local(buildCmdPrefix+"backend/backendserver");
-                local(buildCmdPrefix+"clientapi/clientapiserver");
-                local(buildCmdPrefix+"mtacontainer/mtaserver");
-                local("tar cmvzf ../go_"+tag+".tgz --exclude .git ./src");
-            
-def build_remote_goworkspace(goBinDir,goWorkspaceDir):
-    goPath=make_go_path(goWorkspaceDir)
+def build_remote_goworkspace(goBinDir, goWorkspaceDir):
+    goPath = make_go_path(goWorkspaceDir)
     with cd(goWorkspaceDir):
         with shell_env(GOPATH=goPath,
-                       GOROOT=goBinDir+"/.."):
-            setGoPathPrefix="PATH=${PATH}:"+goBinDir+" && ";
-            run(setGoPathPrefix+buildCmdPrefix+"backend/backendserver");
-            run(setGoPathPrefix+buildCmdPrefix+"clientapi/clientapiserver");
-            run(setGoPathPrefix+buildCmdPrefix+"mtacontainer/mtaserver");
+                       GOROOT=goBinDir + "/.."):
+            setGoPathPrefix = "PATH=${PATH}:" + goBinDir + " && ";
+            run(setGoPathPrefix + buildCmdPrefix + "backend/backendserver");
+            run(setGoPathPrefix + buildCmdPrefix + "clientapi/clientapiserver");
+            run(setGoPathPrefix + buildCmdPrefix + "mtacontainer/mtaserver");
 
-    
 
 #
 # Get dependencies and build the dart client UI
 #
 def build_dartworkspace(tag):
-    if not exists("dart_"+tag+".tgz"):
-        with lcd("dartworkspace"):
-            local("pub get");
-            local("pub build");
-            local("tar cmvzf ../dart_"+tag+".tgz --exclude .git ./build");
+    with lcd("dartworkspace"):
+        local("pub get");
+        local("pub build");
+        local("tar cmvzf ../dart_" + tag + ".tgz --exclude .git ./build");
+
 
 #
 # Deploy self signed certificate for mail.bitlab.dk 
 # with its private key.
 #
-def decrypt_pack_and_send_certificate(taggedDir,tag):
-    certFile="cert_"+tag+".tgz"
-    if not exists(taggedDir+"cert.pem"):
-        local("openssl rsa -in protectedkey.pem -out key.pem"); # Decrypt key
-        local("tar cmvzf cert_"+tag+".tgz cert.pem key.pem scripts");
-        put(certFile,taggedDir)
-        run("tar xmfz "+taggedDir+"/"+certFile+" -C "+taggedDir);
+def decrypt_pack_and_send_certificate(taggedDir, tag):
+    certFile = "cert_" + tag + ".tgz"
+    if not exists(taggedDir + "cert.pem"):
+        local("openssl rsa -in protectedkey.pem -out key.pem");  # Decrypt key
+        local("tar cmvzf cert_" + tag + ".tgz cert.pem key.pem scripts");
+        put(certFile, taggedDir)
+        run("tar xmfz " + taggedDir + "/" + certFile + " -C " + taggedDir);
 
-            
 
 #
 # Make git-tag
@@ -100,50 +99,54 @@ def decrypt_pack_and_send_certificate(taggedDir,tag):
 def make_git_tag():
     return local("git rev-parse --short HEAD", capture=True).strip();
 
+
 #
 # Acquire the git-tag locally and make a directory on the remote
 # server called mail.bitlab.dk_<git-tag>
 #
 def make_and_return_name_of_tagged_directory(tag):
-    taggedDir="mail.bitlab.dk_"+tag
-    run("mkdir -p "+taggedDir)
+    taggedDir = "mail.bitlab.dk_" + tag
+    run("mkdir -p " + taggedDir)
     return taggedDir
-    
+
+
 #
 # Build (if necessary) and Send dart.tgz and go.tgz to the remote host
 # and unpacking them in {taggedDir}.
 #
-def build_transfer_and_unpack_tarballs(taggedDir,tag):
-    dartTarBall="dart_"+tag+".tgz"
-    goTarBall="go_"+tag+".tgz"
-    if not exists(taggedDir+"/"+dartTarBall):
+def build_transfer_and_unpack_tarballs(taggedDir, tag):
+    dartTarBall = "dart_" + tag + ".tgz"
+    goTarBall = "go_" + tag + ".tgz"
+    if not exists(taggedDir + "/" + dartTarBall):
         build_dartworkspace(tag)
-        put(dartTarBall,taggedDir);
-    if not exists(taggedDir+"/"+goTarBall):
+        put(dartTarBall, taggedDir);
+    if not exists(taggedDir + "/" + goTarBall):
         build_goworkspace(tag)
-        put(goTarBall,taggedDir);
-    run("mkdir -p "+taggedDir+"/dartworkspace");
-    run("mkdir -p "+taggedDir+"/goworkspace");
-    run("tar xmfz "+taggedDir+"/"+dartTarBall+ " -C "+taggedDir+"/dartworkspace");
-    run("tar xmfz "+taggedDir+"/"+goTarBall+" -C "+taggedDir+"/goworkspace");
+        put(goTarBall, taggedDir);
+    run("mkdir -p " + taggedDir + "/dartworkspace");
+    run("mkdir -p " + taggedDir + "/goworkspace");
+    run("tar xmfz " + taggedDir + "/" + dartTarBall + " -C " + taggedDir + "/dartworkspace");
+    run("tar xmfz " + taggedDir + "/" + goTarBall + " -C " + taggedDir + "/goworkspace");
+
 
 #
 # Download GoSDK and unpack it properly on the remote server
 #
 def get_os_specific_GO_into(d):
-    ostype=run("uname -s");
+    ostype = run("uname -s");
     if ostype.lower() == "linux":
         run("echo we are on linux box");
-        run("wget --no-check-certificate  "+
+        run("wget --no-check-certificate  " +
             "https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz")
-        run("tar xfz go1.5.1.linux-amd64.tar.gz -C "+d)
+        run("tar xfz go1.5.1.linux-amd64.tar.gz -C " + d)
     if ostype.lower() == "freebsd":
         run("echo we are on freebsd box");
-        run("wget --no-check-certificate  "+
+        run("wget --no-check-certificate  " +
             "https://storage.googleapis.com/golang/go1.5.1.freebsd-amd64.tar.gz");
-        run("tar xfz go1.5.1.freebsd-amd64.tar.gz -C"+d);
+        run("tar xfz go1.5.1.freebsd-amd64.tar.gz -C" + d);
     if ostype.lower() == "darwin":
         run("echo we are on a darwin box, TODO(rwz): Not implemented yet");
+
 
 #
 # Install GoSDK on the remote and return the Path to Go-Tools
@@ -153,33 +156,35 @@ def get_os_specific_GO_into(d):
 # deploy the source and rebuild it on the production environment.
 #
 def check_for_and_install_GOSDK_on_remote(taggedDir):
-    d=run("pwd").strip();
-    if not exists(d+"/go"):
+    d = run("pwd").strip();
+    if not exists(d + "/go"):
         get_os_specific_GO_into(d)
-    return d+"/go/bin"
+    return d + "/go/bin"
 
 
 def make_go_path(goWorkspaceDir):
     with cd(goWorkspaceDir):
         return run("pwd").strip();
 
+
 def sync_with_git():
     local("git pull");
     local("git commit -am \"Deploying standby\" || true ");
-    answer=prompt("Are you a committer @github.com/rasmuswl/e-mail-service [y/N]")
+    answer = prompt("Are you a committer @github.com/rasmuswl/e-mail-service [y/N]")
     if (answer == "y"):
         local("git push");
 
-def start_service_cmd(sesName,exe,root,port,logFile):
-    return "screen -dmS "+sesName+" sh -c '"+exe+" "+root+" "+port+" >"+logFile+" 2>&1'";
+
+def start_service_cmd(sesName, exe, root, port, logFile):
+    return "screen -dmS " + sesName + " sh -c '" + exe + " " + root + " " + port + " >" + logFile + " 2>&1'";
 
 
-def restart_named_screen_session(taggedDir,dosudo,cmd,name):
-    quitCmd="screen -S "+name+" -X quit || true" 
-    sesName=name;
-    logFile=taggedDir+"/"+name+".log"
-#    startCmd="screen -dmS "+sesName+" sh -c '"+exe+" "+root+" "+port+" >"+logFile+" 2>&1'"
-    startCmd="screen -dmS "+sesName+" sh -c '"+cmd+" >"+logFile+" 2>&1'"
+def restart_named_screen_session(taggedDir, dosudo, cmd, name):
+    quitCmd = "screen -S " + name + " -X quit || true"
+    sesName = name;
+    logFile = taggedDir + "/" + name + ".log"
+    #    startCmd="screen -dmS "+sesName+" sh -c '"+exe+" "+root+" "+port+" >"+logFile+" 2>&1'"
+    startCmd = "screen -dmS " + sesName + " sh -c '" + cmd + " >" + logFile + " 2>&1'"
     if dosudo:
         sudo(quitCmd)
         sudo(startCmd)
@@ -189,46 +194,59 @@ def restart_named_screen_session(taggedDir,dosudo,cmd,name):
 
 
 def start_clientapi_server(taggedDir):
-    clientApiSrvExe="goworkspace/bin/clientapiserver"
-    docRoot=taggedDir+"/dartworkspace/build/web";
-    apiPort="443";
-    exe=taggedDir+"/"+clientApiSrvExe;
-    cmd=exe +" " + docRoot + " " + apiPort + " "
-    restart_named_screen_session(taggedDir,True,cmd,"ClientApi")
+    clientApiSrvExe = "goworkspace/bin/clientapiserver"
+    docRoot = taggedDir + "/dartworkspace/build/web";
+    apiPort = "443";
+    exe = taggedDir + "/" + clientApiSrvExe;
+    cmd = exe + " " + docRoot + " " + apiPort + " "
+    restart_named_screen_session(taggedDir, True, cmd, "ClientApi")
+
 
 def start_backend_server(taggedDir):
-    backendSrvExe="goworkspace/bin/backendserver"
-    restart_named_screen_session(taggedDir,False,backendSrvExe,"Backend");
+    backendSrvExe = "goworkspace/bin/backendserver"
+    restart_named_screen_session(taggedDir, False, backendSrvExe, "Backend");
+
 
 def start_mta_server(taggedDir):
-    mtaSrvExe="goworkspace/bin/mtaserver"
-    restart_named_screen_session(taggedDir,False,mtaSrvExe,"MTAServer");
+    mtaSrvExe = "goworkspace/bin/mtaserver"
+    restart_named_screen_session(taggedDir, False, mtaSrvExe, "MTAServer");
+
 
 def start_servers(taggedDir):
     with cd(taggedDir):
-        key=getpass("Api Decryption Key (the start-up passphrase): ");
+        key = getpass("Api Decryption Key (the start-up passphrase): ");
         with settings(hide('running')):
-            run("scripts/start_servers.sh restart "+key);
+            run("scripts/start_servers.sh restart " + key);
 
-def write_tag_in_file(filename,tag, destination):
-    f = open(filename,"w");
+
+def write_tag_in_file(filename, tag, destination):
+    f = open(filename, "w");
     f.write(tag);
     f.close();
     if (destination != None):
-        put(filename,destination);
+        put(filename, destination);
 
-def deploy_version_number(taggedDir,tag):
-        write_tag_in_file("dartworkspace/build/web/version.txt", tag, taggedDir+"/dartworkspace/build/web/version.txt");
-        write_tag_in_file("dartworkspace/web/version.txt",tag,None);
+
+def deploy_version_number(taggedDir, tag):
+    write_tag_in_file("dartworkspace/build/web/version.txt", tag, taggedDir + "/dartworkspace/build/web/version.txt");
+    write_tag_in_file("dartworkspace/web/version.txt", tag, None);
 
 
 #
 # Local target
-# 
+#
+@task(default=True)
 def build():
     """ Build the Go and Dart workspaces locally"""
-    build_dartworkspace()
-    build_goworkspace()
+    tag = make_git_tag()
+    build_dartworkspace(tag)
+    build_goworkspace(tag)
+
+@task
+def buildGo():
+    """Build only the Go workspace"""
+    tag = make_git_tag()
+    build_goworkspace(tag);
 
 #
 # Run the Go tests locally
@@ -243,7 +261,7 @@ def test():
 #
 # Deploy the service to the mail.bitlab.dk servers.
 #
-@hosts(['ubuntu@mail1.bitlab.dk','rwz@mail0.bitlab.dk'])
+@hosts(['ubuntu@mail1.bitlab.dk', 'rwz@mail0.bitlab.dk'])
 def deploy_bitlab_servers():
     """Deploy this workspace on the bitlab servers: mail0.bitlab.dk and mail1.bitlab.dk"""
     sync_with_git()
@@ -251,23 +269,20 @@ def deploy_bitlab_servers():
     run("mkdir -p deploy");
 
     with cd("deploy"):
-        
         tag = make_git_tag()
 
         taggedDir = make_and_return_name_of_tagged_directory(tag)
 
-        build_transfer_and_unpack_tarballs(taggedDir,tag)
+        build_transfer_and_unpack_tarballs(taggedDir, tag)
 
         absolute_path_to_gosdk_bin = check_for_and_install_GOSDK_on_remote(taggedDir)
 
-        build_remote_goworkspace(absolute_path_to_gosdk_bin,taggedDir+"/goworkspace")
-        
-        decrypt_pack_and_send_certificate(taggedDir,tag)
+        build_remote_goworkspace(absolute_path_to_gosdk_bin, taggedDir + "/goworkspace")
 
-        deploy_version_number(taggedDir,tag);
+        decrypt_pack_and_send_certificate(taggedDir, tag)
+
+        deploy_version_number(taggedDir, tag);
 
         start_servers(taggedDir)
 
-        print("Version "+tag+" has been deployed");
-
-
+        print("Version " + tag + " has been deployed");

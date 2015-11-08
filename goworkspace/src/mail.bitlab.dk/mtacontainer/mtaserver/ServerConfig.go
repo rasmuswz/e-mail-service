@@ -4,9 +4,7 @@ import (
 	"mail.bitlab.dk/utilities"
 	"mail.bitlab.dk/mtacontainer/mailgun"
 	"mail.bitlab.dk/mtacontainer/amazonsesprovider"
-	"mail.bitlab.dk/mtacontainer/mandrill"
 	"mail.bitlab.dk/mtacontainer/sendgridprovider"
-	"mail.bitlab.dk/mtacontainer/smtpprovider"
 	"mail.bitlab.dk/mtacontainer/loopbackprovider"
 	"os"
 	"fmt"
@@ -14,9 +12,9 @@ import (
 	"log"
 )
 
-
+const ERROR_THRESHOLD = 2
 func GetLoopBackContainer() (mtacontainer.MTAContainer, mtacontainer.Scheduler) {
-	var provider = loopbackprovider.New(utilities.GetLogger("LoopBack"));
+	var provider = loopbackprovider.New(utilities.GetLogger("LoopBack"),mtacontainer.NewThressHoldFailureStrategy(ERROR_THRESHOLD));
 	var scheduler= mtacontainer.NewRoundRobinScheduler([]mtacontainer.MTAProvider{provider});
 	return mtacontainer.New(scheduler), scheduler;
 }
@@ -40,16 +38,15 @@ func GetPassphraseFromArgOrTerminal() string {
 	return string(passphrase);
 }
 
+
 func GetProductionMTAContainer() (mtacontainer.MTAContainer,mtacontainer.Scheduler) {
 	var passphrase = GetPassphraseFromArgOrTerminal();
 	var mailGunConfig = mailgunprovider.BitLabConfig(passphrase);
-	providers := make([]mtacontainer.MTAProvider, 6);
-	providers[0] = mailgunprovider.New(utilities.GetLogger("MailGun"), mailGunConfig);
-	providers[1] = amazonsesprovider.New(utilities.GetLogger("amazonSES"), mtacontainer.NewThressHoldFailureStrategy(2));
-	providers[2] = mandrill.New(utilities.GetLogger("Mandill"));
-	providers[3] = sendgridprovider.New(utilities.GetLogger("SendGrid"));
-	providers[4] = smtpprovider.New(utilities.GetLogger("Smtp [localhost:587]"), "localhost", 587);
-	providers[5] = smtpprovider.New(utilities.GetLogger("Smtp [localhost:25]"), "localhost", 25);
+	var amazonConfig = amazonsesprovider.
+	providers := make([]mtacontainer.MTAProvider, 5);
+	providers[0] = mailgunprovider.New(utilities.GetLogger("MailGun"), mailGunConfig,mtacontainer.NewThressHoldFailureStrategy(ERROR_THRESHOLD));
+	providers[1] = amazonsesprovider.New(utilities.GetLogger("amazonSES"), amazonConfig, mtacontainer.NewThressHoldFailureStrategy(ERROR_THRESHOLD));
+	providers[2] = sendgridprovider.New(utilities.GetLogger("SendGrid"), sendGridConfig, mtacontainer.NewThressHoldFailureStrategy(ERROR_THRESHOLD));
 	var scheduler mtacontainer.Scheduler = mtacontainer.NewRoundRobinScheduler(providers);
 	return mtacontainer.New(scheduler),scheduler;
 }
