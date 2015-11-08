@@ -45,13 +45,12 @@ which MTA provider it shall employ. By default a Round Robin Scheduler is provid
 by providing a custom instance of the Scheduler-strategy interface. For example, one could 
 implement an adaptive scheduling strategy sending e-mails according to performance stats (e.g. slow MTAs gets scheduled less often).
 
-The system supports three MTAs for sending e-mail: [Amazon SES](http://aws.amazon.com/ses/), [MailGun](https://www.mailgun.com), and [Sendgrid](https://sendgrid.com/). 
+The system supports three MTAs for sending e-mail: [Amazon SES](http://aws.amazon.com/ses/), [MailGun](https://www.mailgun.com), and [SendGrid](https://sendgrid.com/). 
 For MailGun the provider is custom and specialized towards using their comprehensive API
 including their <b>WebHooks API</b> for getting <b>health information</b> about sent e-mails and 
 also their <b>Routes API</b> is used to get notified when e-mails arrive. 
-For Amazon SeS there is also a custom provider mainly using their SendEmail function [Rest API](http://docs.aws.amazon.com/ses/latest/DeveloperGuide/sending-email.html). Both Amazon SeS and MailGun offers
-Go-libraries to access their services, while Mandrill does not. The Mandrill provider thus creates the Urls and parses 
-the repsonse from the Mandrill End-Point. 
+For Amazon SeS there is also a custom provider mainly using their SendEmail function [Rest API](http://docs.aws.amazon.com/ses/latest/DeveloperGuide/sending-email.html). All three providers offer
+Go-libraries to access their services which the Go-applications will depend on.
 
 The BackEndServer listens for incoming connections from the ClientAPI (the next teir). It uses the storage for user names and other log in related information when authenticating e-mail send requests. The storage is Json-based. Entries are maps from string to string. The storage offers three operations: put, update, and get. Lookup takes a map from string to string and returns all maps in storage that have the given map as a subset. See [jsonstore.go](https://github.com/rasmuswz/e-mail-service/blob/master/goworkspace/src/mail.bitlab.dk/backend/jsonstore.go) The storage container only supports in memory storage for the time being. A final version should include permanent storage like a Oracle <b>MySQL</b> database to implement the jsonstore. A high-performing solution might employ a file based solution in a High-Perf-Distributed-File-Systems like [Hadoop HDFS](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsUserGuide.html). The storage is used 
 
