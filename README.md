@@ -3,7 +3,7 @@ E Mail Service
 ------------------------------------------------------------
 
 [BitMail Live](https://mail.bitlab.dk) - try logging in. When a new user logs in
-for the first time, (s)he is created.
+for the first time, (s)he is created with the password provided.
 
 [Click here](#deploy-test-build-get) - to see how the system is built, tested and deployed.
 
