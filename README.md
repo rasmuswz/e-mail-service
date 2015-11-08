@@ -45,7 +45,7 @@ which MTA provider it shall employ. By default a Round Robin Scheduler is provid
 by providing a custom instance of the Scheduler-strategy interface. For example, one could 
 implement an adaptive scheduling strategy sending e-mails according to performance stats (e.g. slow MTAs gets scheduled less often).
 
-The system supports three MTAs for sending e-mail: Amazon SES, MailGun, and Mandrill. 
+The system supports three MTAs for sending e-mail: [Amazon SES](http://aws.amazon.com/ses/), [MailGun](https://www.mailgun.com), and [Sendgrid](https://sendgrid.com/). 
 For MailGun the provider is custom and specialized towards using their comprehensive API
 including their <b>WebHooks API</b> for getting <b>health information</b> about sent e-mails and 
 also their <b>Routes API</b> is used to get notified when e-mails arrive. 
