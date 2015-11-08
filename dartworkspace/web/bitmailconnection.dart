@@ -153,7 +153,7 @@ class ClientAPI {
   // Check that the connection to the server is alive.
   //
   void _check(Timer t) {
-    QueryResponse  resp = _GetQuery(_path + "/alive", "", null);
+    QueryResponse  resp = _GetQuery(_path + "/alive?state", "", null);
     _alive = resp.OK;
     if (_alive != _previousAlive) {
       print("Notifying " + stateListeners.length.toString() + " listeners");

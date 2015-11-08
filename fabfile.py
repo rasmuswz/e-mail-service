@@ -25,7 +25,6 @@ import subprocess
 # kill
 # pgrep
 #
-# at least one hosts needs MySQL for the Storage component.
 #
 
 #
@@ -290,7 +289,7 @@ def test_manuel():
 @hosts(['ubuntu@mail1.bitlab.dk', 'rwz@mail0.bitlab.dk'])
 def deploy_bitlab_servers():
     """Deploy this workspace on the bitlab servers: mail0.bitlab.dk and mail1.bitlab.dk"""
-    sync_with_git()
+    #sync_with_git()
 
     run("mkdir -p deploy");
 

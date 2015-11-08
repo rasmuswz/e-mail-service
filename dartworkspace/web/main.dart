@@ -9,7 +9,7 @@
  *
  * - LoginWindow
  * - System Message
- * - SignOut
+ * - ComposeEmail Window
  * - NoServiceFullScreenErrorMessage
  *
  * which are all collected in one ViewController that takes care of
@@ -85,7 +85,8 @@ class ComposeEmailWindowController {
   void _handleCancelClick() {
     this.hide();
     this._reset();
-    _viewController.signOut.signOut();
+    _viewController.loginWindow.displayWindow();
+    _model.logOut();
   }
 
   void _handleSendClick() {
@@ -153,23 +154,6 @@ class LoginWindowController {
   }
 }
 
-class SignOutController {
-  ButtonElement view;
-  BitMailModel model;
-  LoginWindowController loginView;
-
-  SignOutController(this.model, this.loginView) {
-    view = querySelector("#logout");
-    view.onClick.listen((e) {
-      this.signOut();
-    });
-  }
-
-  void signOut() {
-    loginView.displayWindow();
-    model.logOut();
-  }
-}
 
 class NoServiceFullScreenErrorMessageController {
   DivElement view;
@@ -220,7 +204,6 @@ class GeoMailingListItem {
 
 class ViewController {
   LoginWindowController loginWindow;
-  SignOutController signOut;
   NoServiceFullScreenErrorMessageController completeErrorMessage;
   SystemMessageController systemMessages;
   ComposeEmailWindowController composerWindow;
@@ -229,7 +212,6 @@ class ViewController {
 
   ViewController(this.model) {
     this.loginWindow = new LoginWindowController(model, this);
-    this.signOut = new SignOutController(model,loginWindow);
     this.completeErrorMessage = new NoServiceFullScreenErrorMessageController();
     this.systemMessages = new SystemMessageController();
     this.composerWindow = new ComposeEmailWindowController(model, this);
