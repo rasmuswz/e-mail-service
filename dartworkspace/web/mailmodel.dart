@@ -165,12 +165,6 @@ class BitMailModel {
    */
   List<Email> loadEmailList(int offset, int count) {
     List<Email> mails = [];
-    /*
-    mails.add(new Email("geomail@mail.bitlab.dk", "Hi and welcome to Geo-mail"));
-    mails[0].setContent("Hi,\nTry out the geo-mailing lists in the bottom of the "+
-    "page, it will allow you to send e-mails to everyone logged into GeoMail in your"+
-    " local area.\n\nThanks\nThe GeoMail Team");
-*/
 
     mails = connection.queryForMail(offset, count, session);
 

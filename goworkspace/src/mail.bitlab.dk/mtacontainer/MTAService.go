@@ -252,10 +252,11 @@ func New(scheduler Scheduler) MTAContainer {
 	}
 
 	var result = new(DefaultMTAContainer);
-	result.providers = scheduler.getProviders();
+	result.providers = scheduler.GetProviders();
 	result.incoming = make(chan model.Email);
 	result.outgoing = make(chan model.Email);
 	result.events = make(chan Event);
+
 	result.scheduler = scheduler;
 
 	// Aggregate all provider incoming and event channels to those of the MTAContainer
@@ -264,28 +265,42 @@ func New(scheduler Scheduler) MTAContainer {
 
 		// incoming
 		go func() {
-			var in = pp.GetIncoming();
-			var email = <-in;
-			result.incoming <- email;
+			for {
+				var in= pp.GetIncoming();
+				var email,ok = <-in;
+				if ok == false {
+					log.Println("Incoming was closed.")
+				}
+				result.incoming <- email;
+			}
 		}();
 
 		// health events
 		go func() {
-			var evt = pp.GetEvent();
-			var event, ok = <-evt;
-			if (ok == false) {
-				return;
+			for {
+				var evt = pp.GetEvent();
+				var event, ok = <-evt;
+				if (ok == false) {
+					log.Println("Event channel was closed. Terminating event listener.");
+					return;
+				}
+				result.events <- event;
 			}
-			result.events <- event;
 		}();
 	}
 
 	// upon receiving an e-mail to send, schedule and dispatch
 	go func() {
-		var email = <-result.outgoing;
-		provider := result.scheduler.schedule();
-		log.Println("Scheduling mail for sending on "+provider.GetName());
-		provider.GetOutgoing() <- email;
+		for {
+			var email = <-result.outgoing;
+			provider := result.scheduler.Schedule();
+			if provider == nil {
+				log.Println("Scheduler gave nil Provider");
+				continue;
+			}
+			log.Println("Scheduling mail for sending on " + provider.GetName());
+			provider.GetOutgoing() <- email;
+		}
 	}();
 
 	return result;

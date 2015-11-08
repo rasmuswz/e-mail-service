@@ -11,15 +11,24 @@
 package main
 import (
 	"mail.bitlab.dk/utilities"
-	"mail.bitlab.dk/utilities/tests"
-	"mail.bitlab.dk/mtacontainer/mailgun"
+	"mail.bitlab.dk/mtacontainer/sendgridprovider"
+	"mail.bitlab.dk/mtacontainer/test"
+	"os"
 )
 
 
 func main() {
-	sendgridMTAProvider := mailgunprovider.New(utilities.GetLogger("SendGrid"),
-		mailgunprovider.BitLabConfig("UberChallenge"),tests.NewMockFailureStrategy());
-	tests.ManuallyVerifyEmailSend(sendgridMTAProvider);
+	if (len(os.Args) < 3) {
+		println("manual_test <to address> <key>");
+		return;
+	}
+
+	to := os.Args[1];
+	key := os.Args[2];
+
+	sendgridMTAProvider := sendgridprovider.New(utilities.GetLogger("SendGrid"),
+		 sendgridprovider.BitLabConfig(key),test.NewMockFailureStrategy());
+	test.ManuallyVerifyEmailSend(sendgridMTAProvider,to);
 }
 
 

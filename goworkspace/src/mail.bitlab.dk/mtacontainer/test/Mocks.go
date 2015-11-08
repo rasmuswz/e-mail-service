@@ -1,9 +1,9 @@
-package tests
+package test
 import (
-
 	"mail.bitlab.dk/model"
 	"testing"
 	"mail.bitlab.dk/mtacontainer"
+	"log"
 )
 
 
@@ -81,10 +81,12 @@ func (ths *MockMTAProvider) Stop() {
 // letting the MTA Container believe it has been delivered
 func (ths *MockMTAProvider) DoOutgoingEmail() model.Email {
 	var mail = <-ths.out;
+	log.Println("Got mail");
 	if (ths.expectedMail != nil ) {
+		log.Println("Not nil");
 		if mail != ths.expectedMail {
+			print("Error shoudl have happened.")
 			ths.t.Error("Expected another email.")
-
 		}
 	}
 	return mail;
@@ -96,7 +98,7 @@ func (ths *MockMTAProvider) DoIncomingEmail(mail model.Email) {
 
 }
 
-func (ths *MockMTAProvider) expectOutMail(m model.Email) {
+func (ths *MockMTAProvider) ExpectOutMail(m model.Email) {
 	ths.expectedMail = m;
 }
 func (ths *MockMTAProvider) GetEvent() chan mtacontainer.Event{
@@ -110,7 +112,7 @@ func (ths *MockMTAProvider) GetName() string {
 func NewMockMTAProvider(t *testing.T) mtacontainer.MTAProvider {
 	result := new(MockMTAProvider);
 	result.in = make(chan model.Email,5);
-	result.out = make(chan model.Email);
+	result.out = make(chan model.Email,5);
 	result.evt = make(chan mtacontainer.Event);
 	result.t = t;
 	return result;
@@ -127,11 +129,11 @@ type SchedulerMock struct {
 	removeProviderResult int;
 }
 
-func (ths *SchedulerMock) schedule() mtacontainer.MTAProvider {
+func (ths *SchedulerMock) Schedule() mtacontainer.MTAProvider {
 	return ths.next;
 }
 
-func (ths *SchedulerMock) setNextMTA(next *MockMTAProvider) {
+func (ths *SchedulerMock) SetNextMTA(next *MockMTAProvider) {
 	ths.next = next;
 }
 

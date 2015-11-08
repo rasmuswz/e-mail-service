@@ -104,7 +104,7 @@ func listenForSendBackEnd(container mtacontainer.MTAContainer) {
 		}
 
 
-		container.GetOutgoing() <- model.NewEmailFromJSon(&jemail);
+		container.GetOutgoing() <- &jemail;
 
 	});
 

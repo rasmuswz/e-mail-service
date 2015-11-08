@@ -56,6 +56,9 @@ def build_goworkspace(tag):
             local(buildCmdPrefix + "backend/backendserver");
             local(buildCmdPrefix + "clientapi/clientapiserver");
             local(buildCmdPrefix + "mtacontainer/mtaserver");
+            local(buildCmdPrefix + "mtacontainer/amazonsesprovider/amazonmanualtest");
+            local(buildCmdPrefix + "mtacontainer/mailgunprovider/mailgunmanualtest");
+            local(buildCmdPrefix + "mtacontainer/sendgridprovider/sendgridmanualtest");
             local("tar cmvzf ../go_" + tag + ".tgz --exclude .git ./src");
 
 
@@ -257,10 +260,18 @@ def test():
     with cd("goworkspace"):
         local("go test");
 
-
+#
+# Run tests that require manuel validation
+#
+def test_manuel():
+    """Testing the concrete MTA providers, this involves checking an e-mail arrives in a real INBOX"""
+    key=getpass("Please enter the start-up passphrase to unlock API keys:");
+    with settings(hide('running')):
+        local("cd goworkspace && go test mail.bitlab.dk/mtacontainer/amazonsesprovider/manual_test");
 #
 # Deploy the service to the mail.bitlab.dk servers.
 #
+@task
 @hosts(['ubuntu@mail1.bitlab.dk', 'rwz@mail0.bitlab.dk'])
 def deploy_bitlab_servers():
     """Deploy this workspace on the bitlab servers: mail0.bitlab.dk and mail1.bitlab.dk"""

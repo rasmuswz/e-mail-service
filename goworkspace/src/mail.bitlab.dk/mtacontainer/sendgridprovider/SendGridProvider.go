@@ -6,13 +6,15 @@ import (
 	"mail.bitlab.dk/utilities/commandprotocol"
 	"github.com/sendgrid/sendgrid-go"
 	"errors"
+	"strings"
 )
 
 
 const (
 	SG_CNF_API_USER = "apiuser";
-	SG_CNF_API_KEY = "apikey";
-
+	SG_CNF_ENC_API_KEY = "encapikey";
+	SG_CNF_API_KEY_LEN = "apikeylen";
+	SG_CNF_PASSPHRASE = "passphrase";
 )
 
 type SendGridProvider struct {
@@ -43,19 +45,22 @@ func (ths * SendGridProvider) GetEvent() chan mtacontainer.Event {
 }
 
 func (ths * SendGridProvider) GetName() string {
-	return "Send Grid Email Service provider through API"
+	return "Send Grid Email Service "
 }
 
 
 
-func New(log *log.Logger, config map[string]string) mtacontainer.MTAProvider {
+func New(log *log.Logger, config map[string]string, fs mtacontainer.FailureStrategy) mtacontainer.MTAProvider {
 	var result = new(SendGridProvider);
 	result.incoming = make(chan model.Email);
 	result.outgoing = make(chan model.Email);
 	result.events = make(chan mtacontainer.Event);
+	result.cmd = make(chan commandprotocol.Command);
 	result.log = log;
 	result.log.Println(result.GetName() + " MTA Going up")
-	result.sg = sendgrid.NewSendGridClient(config[SG_CNF_API_USER], config[SG_CNF_API_KEY]);
+	result.sg = sendgrid.NewSendGridClientWithApiKey("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");
+	result.failureStrategy = fs;
+	go result.sendingRoutine();
 	return result;
 }
 
@@ -86,14 +91,21 @@ func (ths *SendGridProvider) sgSend(m model.Email) {
 
 
 	message := sendgrid.NewMail()
+	message.From = m.GetHeader(model.EML_HDR_FROM);
+	message.To = m.GetHeaders()[model.EML_HDR_TO];
+	message.Subject = m.GetHeader(model.EML_HDR_SUBJECT)
 	for k, _ := range m.GetHeaders() {
-		message.AddHeader(k, m.GetHeader(k));
+		if strings.Compare(k,model.EML_HDR_FROM) != 0 &&
+		   strings.Compare(k,model.EML_HDR_TO) != 0 &&
+		   strings.Compare(k,model.EML_HDR_SUBJECT) != 0 {
+			message.AddHeader(k, m.GetHeader(k));
+		}
 	}
 	message.SetText(m.GetContent());
 
 	err := ths.sg.Send(message)
 
-	// report MailGunProvider as down
+	// report SendGrid Provider as down
 	if err != nil {
 		ths.log.Println(err.Error())
 		if (ths.failureStrategy.Failure(mtacontainer.EK_CRITICAL) == false) {
@@ -101,7 +113,7 @@ func (ths *SendGridProvider) sgSend(m model.Email) {
 		} else {
 			ths.Stop(); // we are officially going down
 			ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, err);
-			ths.log.Println("The MailGun Provider is considered Down.");
+			ths.log.Println("The SendGrid Provider is considered Down.");
 			ths.events <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT, errors.New("SendGrid is down for sending"), m);
 			for e := range ths.outgoing {
 				var ee model.Email = e;

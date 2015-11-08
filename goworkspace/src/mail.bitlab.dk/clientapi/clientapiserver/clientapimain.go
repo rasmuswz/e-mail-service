@@ -57,7 +57,7 @@ func main() {
 
 		select {
 		case e := <-events:
-			if e.GetKind() == mtacontainer.EK_DOWN_TEMPORARILY {
+			if e.GetKind() == mtacontainer.EK_FATAL {
 				return;
 			} else {
 				log.Println(e.GetError().Error());

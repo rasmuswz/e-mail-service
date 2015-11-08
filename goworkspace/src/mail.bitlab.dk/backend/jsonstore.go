@@ -51,7 +51,6 @@ type JSonStore interface {
 type UserBlob struct {
 	Username  string;
 	Password  string;
-	Location  string;
 	SessionId string;
 }
 
@@ -60,11 +59,10 @@ func (ths *UserBlob) IsLoggedIn() bool {
 }
 
 
-func UserBlobNewFull(username , password, location, sessionid string) *UserBlob {
+func UserBlobNewFull(username , password,  sessionid string) *UserBlob {
 	result := new(UserBlob);
 	result.Username = username;
 	result.Password = password;
-	result.Location = location;
 	result.SessionId = sessionid;
 	return result;
 }
@@ -73,7 +71,6 @@ func UserBlobNew(username , password string) *UserBlob{
 	result := new(UserBlob);
 	result.Username = username;
 	result.Password = password;
-	result.Location = "";
 	result.SessionId = "";
 	return result;
 }
@@ -82,7 +79,6 @@ func (ths *UserBlob) ToJSonMap() map[string]string {
 	result := make(map[string]string);
 	result["Username"] = ths.Username;
 	result["Password"] = ths.Password;
-	result["Location"] = ths.Location;
 	result["SessionId"] = ths.SessionId;
 	return result;
 }
@@ -91,7 +87,6 @@ func UserBlobFromJSonMap(m map[string]string) *UserBlob {
 	result := new(UserBlob);
 	result.Username = m["Username"];
 	result.Password = m["Password"];
-	result.Location = m["Location"];
 	result.SessionId = m["SessionId"];
 	return result;
 }

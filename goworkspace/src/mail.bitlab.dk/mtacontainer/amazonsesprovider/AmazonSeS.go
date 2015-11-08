@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"time"
+	"mail.bitlab.dk/utilities"
 );
 
 //
@@ -37,12 +38,24 @@ type AmazonMtaProvider struct {
 }
 
 
+const (
+	AWS_CNF_PASSPHRASE = "passphrase";
+	AWS_CNF_API_KEY_ID = "keyid";
+	AWS_CNF_ENC_SECRET_KEY = "secretkey";
+	AWS_CNF_SECRET_KEY_LEN = "secretkeylen";
+)
+
 // ------------------------------------------------------
 //
 // MTA Provider API
 //
 // ------------------------------------------------------
 func (ths *AmazonMtaProvider) Stop() {
+	ths.command <- commandprotocol.CMD_MTA_PROVIDER_SHUTDOWN;
+	close(ths.incoming);
+	close(ths.outgoing);
+	close(ths.command);
+	close(ths.events);
 
 }
 
@@ -68,7 +81,7 @@ func (ths *AmazonMtaProvider) GetName() string {
 //
 // ---------------------------------------------------------
 
-func New(log *log.Logger, fs mtacontainer.FailureStrategy) mtacontainer.MTAProvider {
+func New(log *log.Logger, config map[string]string, fs mtacontainer.FailureStrategy) mtacontainer.MTAProvider {
 	var result = new(AmazonMtaProvider);
 	result.log = log;
 	result.incoming = make(chan model.Email);
@@ -76,7 +89,10 @@ func New(log *log.Logger, fs mtacontainer.FailureStrategy) mtacontainer.MTAProvi
 	result.events = make(chan mtacontainer.Event);
 	result.failureStrategy = fs;
 	awsLogger := aws.NewDefaultLogger();
-	myCredentials := credentials.NewStaticCredentials("AKIAIOEC74OYKB7VQNYQ", "5AKPej5pbSM2xaHgkG1Nzp5tPcRwztQ5Le8jqRsc", "");
+	myCredentials := credentials.NewStaticCredentials(config[AWS_CNF_API_KEY_ID],
+		utilities.DecryptApiKey(config[AWS_CNF_PASSPHRASE],
+			config[AWS_CNF_ENC_SECRET_KEY],
+			goh.StrToInt(config[AWS_CNF_SECRET_KEY_LEN])), "");
 	mySession := session.New(&aws.Config{Region: aws.String("us-west-2"), Credentials: myCredentials, Logger: awsLogger});
 	result.amazonApi = ses.New(mySession);
 	if result.amazonApi == nil {

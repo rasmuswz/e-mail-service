@@ -10,7 +10,7 @@ func BitLabConfig(passphrase string) map[string]string {
 	// https://mailgun.com/sessions/new. Now we can safely commit and push this
 	// to GitHub
 	mailGunConfig[MG_CNF_ENCRYPTED_APIKEY] =
-	"UO7jcR8J+s17B8DXJN7bbkS3MreTHJVtUjZcTr352zerwSm2AAAAAAAAAAAAAAAA";
+	"59FZ4m/4sEY3viC7dSZKFYZchn3fqdSDubS+ZhMhyIXJXetKAAAAAAAAAAAAAAAA";
 	mailGunConfig[MG_CNF_ENCRYPTED_APIKEY_LEN] = strconv.Itoa(36);
 	mailGunConfig[MG_CNF_DOMAIN_TO_SERVE] = "mail.bitlab.dk";
 	mailGunConfig[MG_CONF_HEALTH_NOTIFY_EMAIL] = "r@wz.gl";

@@ -18,7 +18,6 @@ import (
 	"mail.bitlab.dk/utilities"
 	"encoding/base64"
 	"strings"
-	"strconv"
 	"time"
 	"os"
 	"mail.bitlab.dk/utilities/go"
@@ -76,7 +75,7 @@ func (ths *ReceiveBackEnd) Stop() {
 // ---------------------------------------------------------
 func (ths *ReceiveBackEnd) ListenForClientApi() {
 	var mux = http.NewServeMux();
-	mux.HandleFunc("/getmail", ths.GetMail);
+	mux.HandleFunc("/getmail", ths.handleGetMail);
 	mux.HandleFunc("/login", ths.handleLogin);
 	mux.HandleFunc("/logout", ths.handleLogout);
 	mux.HandleFunc("/", ths.handleError);
@@ -103,11 +102,11 @@ func (ths *ReceiveBackEnd) handleLogout(w http.ResponseWriter, r *http.Request) 
 }
 
 // Client API helper function to create session identification string
-func (ths *ReceiveBackEnd) createSession(username, location string) string {
+func (ths *ReceiveBackEnd) createSession(username string) string {
 	var now = time.Now();
-	var sessionId = utilities.HashStringToHex(now.String() + username + location);
+	var sessionId = utilities.HashStringToHex(now.String() + username );
 	ths.log.Println("Created session id for user: " + username + "\n" + sessionId);
-	ths.store.PutJSonBlob(map[string]string{"sessionId": sessionId, "username": username, "location": location});
+	ths.store.PutJSonBlob(map[string]string{"sessionId": sessionId, "username": username});
 	return sessionId;
 }
 
@@ -117,14 +116,14 @@ func (ths *ReceiveBackEnd) handleLogin(w http.ResponseWriter, r *http.Request) {
 	ths.log.Println("Login Handler on Backend !");
 	username := r.URL.Query().Get("username");
 	password := r.URL.Query().Get("password");
-	location := r.URL.Query().Get("location");
 
-	if (username == "" || password == "" || location == "") {
+
+	if (username == "" || password == "") {
 		http.Error(w, "username, password or location is not set", http.StatusBadRequest);
 		return;
 	}
 
-	ths.log.Println("Welcome to user " + username + " at " + location);
+	ths.log.Println("Welcome to user " + username + " at ");
 
 	users := ths.store.GetJSonBlobs(UserBlobNew(username, password).ToJSonMap());
 
@@ -136,8 +135,8 @@ func (ths *ReceiveBackEnd) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if (len(users) == 0) {
 		ths.log.Println("No user with that password and username, is the any user called " + username + "?")
 		users = ths.store.GetJSonBlobs(UserBlobNew(username, "").ToJSonMap());
-		var sessionId = ths.createSession(username, location);
-		userBlob := UserBlobNewFull(username, password, location, sessionId);
+		var sessionId = ths.createSession(username);
+		userBlob := UserBlobNewFull(username, password, sessionId);
 		if len(users) == 0 {
 			ths.log.Println("No, lets create " + username);
 			ths.store.PutJSonBlob(userBlob.ToJSonMap());
@@ -155,9 +154,9 @@ func (ths *ReceiveBackEnd) handleLogin(w http.ResponseWriter, r *http.Request) {
 	// Ok we found a user
 	//
 	if (len(users) == 1) {
-		var sessionId = ths.createSession(username, location);
+		var sessionId = ths.createSession(username);
 		w.Write([]byte(sessionId));
-		ths.store.UpdJSonBlob(UserBlobNew(username, password).ToJSonMap(), UserBlobNewFull(username, password, location, sessionId).ToJSonMap());
+		ths.store.UpdJSonBlob(UserBlobNew(username, password).ToJSonMap(), UserBlobNewFull(username, password, sessionId).ToJSonMap());
 	} else {
 		http.Error(w, "Access Denied", http.StatusForbidden);
 
@@ -189,7 +188,7 @@ func CheckAuthorizedUser(store JSonStore, req *http.Request) (string, bool) {
 }
 
 // Service API
-func (ths *ReceiveBackEnd) GetMail(w http.ResponseWriter, r *http.Request) {
+func (ths *ReceiveBackEnd) handleGetMail(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close();
 	type GetMailRequest struct {
 		index  int;
@@ -200,7 +199,7 @@ func (ths *ReceiveBackEnd) GetMail(w http.ResponseWriter, r *http.Request) {
 
 	var username, ok = CheckAuthorizedUser(ths.store, r);
 	if ok == false {
-		w.Header()["StatusCode"] = []string{strconv.FormatUint(403, 10)};
+		http.Error(w,"Access denied",http.StatusForbidden);
 		return;
 	}
 
@@ -218,7 +217,7 @@ func (ths *ReceiveBackEnd) GetMail(w http.ResponseWriter, r *http.Request) {
 		return;
 	}
 
-
+	ths.log.Println("looking for mail in storage");
 	query := NewEmailBlobForFindingMBox(NewMBox(username, model.MBOX_NAME_INBOX).UniqueID).ToJSonMap();
 	buffer := bytes.NewBuffer(nil);
 
@@ -226,6 +225,8 @@ func (ths *ReceiveBackEnd) GetMail(w http.ResponseWriter, r *http.Request) {
 	buffer.WriteString("[");
 
 	var emailsForUser []map[string]string = ths.store.GetJSonBlobs(query);
+
+	ths.log.Println("We have "+goh.IntToStr(len(emailsForUser))+ " emails from storage");
 
 	for i := range emailsForUser {
 		if (i >= ask.index && i < ask.index + ask.length) {

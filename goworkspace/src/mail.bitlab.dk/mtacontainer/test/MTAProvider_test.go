@@ -4,13 +4,13 @@
 //
 // Author: Rasmus Winther Zakarias
 //
-package mtacontainer_test
+package test
 import (
 	"testing"
+
 	"mail.bitlab.dk/mtacontainer"
 	"mail.bitlab.dk/mtacontainer/loopbackprovider"
 	"mail.bitlab.dk/utilities"
-	"mail.bitlab.dk/utilities/tests"
 )
 
 // Testing that the MTA actually can send email is a manual task deferred to MTAProvider_SharedTests.go
@@ -26,8 +26,7 @@ import (
 func Test_check_fatal_event_on_shutdown(t *testing.T) {
 	c := make(chan int);
 	events := make([]mtacontainer.Event, 0);
-	provider := loopbackprovider.New(utilities.GetLogger("LoopBack"),tests.NewMockFailureStrategy());
-
+	provider := loopbackprovider.New(utilities.GetLogger("Loop"),NewMockFailureStrategy());
 
 	go func() {
 		for {
@@ -60,7 +59,3 @@ func Test_check_fatal_event_on_shutdown(t *testing.T) {
 		t.Error("Expected one fatal event");
 	}
 }
-
-
-
-

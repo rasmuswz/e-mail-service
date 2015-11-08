@@ -12,8 +12,8 @@ package mtacontainer
 //
 // ---------------------------------------------------------
 type Scheduler interface {
-schedule() MTAProvider;
-getProviders() []MTAProvider;
+Schedule() MTAProvider;
+GetProviders() []MTAProvider;
 RemoveProviderFromService(provider MTAProvider) int;
 }
 
@@ -29,13 +29,13 @@ type RoundRobinScheduler struct {
 	providers []MTAProvider;
 }
 
-func (rrs *RoundRobinScheduler) getProviders() []MTAProvider {
+func (rrs *RoundRobinScheduler) GetProviders() []MTAProvider {
 	return rrs.providers;
 }
 
-func (rrs *RoundRobinScheduler) schedule() MTAProvider {
+func (rrs *RoundRobinScheduler) Schedule() MTAProvider {
 	var result = rrs.providers[rrs.current];
-	rrs.current = (rrs.current % len(rrs.providers));
+	rrs.current = ((rrs.current+1) % len(rrs.providers));
 	return result;
 }
 

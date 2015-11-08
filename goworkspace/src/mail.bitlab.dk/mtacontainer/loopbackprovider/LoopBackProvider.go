@@ -66,7 +66,7 @@ func New(log *log.Logger, fs mtacontainer.FailureStrategy) mtacontainer.MTAProvi
 	var result = new(LoopBackProvider);
 	result.incoming = make(chan model.Email);
 	result.outgoing = make(chan model.Email);
-	result.events = make(chan mtacontainer.Event);
+	result.events = make(chan mtacontainer.Event,2);
 	result.command = make(chan commandprotocol.Command);
 	result.failureStrategy = fs;
 	go result.handleOutgoingMessages();
@@ -97,11 +97,14 @@ func (ths *LoopBackProvider) handleOutgoingMessages() {
 				ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL,errors.New("Loop Back MTA is down"),ths);
 				return; // <- This actually stops this provider :-)
 			};
+			log.Println("Sending event.");
 			ths.events <- mtacontainer.NewEvent(mtacontainer.EK_OK,errors.New("Loop Back MTA Got message"),ths)
+			log.Println("Managed to send event.");
 			var headers = m.GetHeaders();
 			var temp = headers[model.EML_HDR_FROM];
 			headers[model.EML_HDR_FROM] = headers[model.EML_HDR_TO];
 			headers[model.EML_HDR_TO] = temp;
+			log.Println("Forwardng on incoming channel");
 			ths.incoming <- m;
 
 

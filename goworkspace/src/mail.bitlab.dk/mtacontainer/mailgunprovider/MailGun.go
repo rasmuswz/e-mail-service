@@ -413,8 +413,6 @@ func n(log *log.Logger, config map[string]string, fs mtacontainer.FailureStrateg
 	var apiKey = utilities.DecryptApiKey(config[MG_CNF_PASSPHRASE], config[MG_CNF_ENCRYPTED_APIKEY],
 		goh.StrToInt(config[MG_CNF_ENCRYPTED_APIKEY_LEN]));
 
-		print("MG: "+apiKey);
-
 	result.mg = mailgun.NewMailgun(config[MG_CNF_DOMAIN_TO_SERVE], apiKey, "");
 	result.log = log;
 

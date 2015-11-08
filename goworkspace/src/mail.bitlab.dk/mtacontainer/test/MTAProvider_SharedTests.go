@@ -1,9 +1,8 @@
-package tests
+package test
 import (
 	"mail.bitlab.dk/mtacontainer"
 	"mail.bitlab.dk/utilities/go"
 	"strings"
-	"os"
 )
 
 // ---------------------------------------------------------
@@ -19,28 +18,7 @@ import (
 //
 // ---------------------------------------------------------
 
-func ManuallyVerifyEmailSend(provider mtacontainer.MTAProvider)  {
-
-	//
-	// Get To address from args
-	//
-	if len(os.Args) < 3 {
-		println("amazonmanualtest <email target for tests> <decryption key>");
-		return;
-	}
-	to := os.Args[1];
-
-	//
-	// Check args
-	//
-	if provider == nil {
-		println("Creating the provider failed.");
-	}
-
-	if len(strings.Split(to, "@")) != 2 {
-		println("[ManualTest] Failed given first argument must be an email address.");
-		return;
-	}
+func ManuallyVerifyEmailSend(provider mtacontainer.MTAProvider, to string)  {
 
 	//
 	// Output all events from MTA Provider

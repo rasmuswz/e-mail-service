@@ -2,7 +2,7 @@ package main
 import (
 	"mail.bitlab.dk/mtacontainer"
 	"mail.bitlab.dk/utilities"
-	"mail.bitlab.dk/mtacontainer/mailgun"
+	"mail.bitlab.dk/mtacontainer/mailgunprovider"
 	"mail.bitlab.dk/mtacontainer/amazonsesprovider"
 	"mail.bitlab.dk/mtacontainer/sendgridprovider"
 	"mail.bitlab.dk/mtacontainer/loopbackprovider"
@@ -42,11 +42,12 @@ func GetPassphraseFromArgOrTerminal() string {
 func GetProductionMTAContainer() (mtacontainer.MTAContainer,mtacontainer.Scheduler) {
 	var passphrase = GetPassphraseFromArgOrTerminal();
 	var mailGunConfig = mailgunprovider.BitLabConfig(passphrase);
-	var amazonConfig = amazonsesprovider.
+	var amazonConfig = amazonsesprovider.BitLabConfig(passphrase);
+	var sendgridConfig = sendgridprovider.BitLabConfig(passphrase);
 	providers := make([]mtacontainer.MTAProvider, 5);
 	providers[0] = mailgunprovider.New(utilities.GetLogger("MailGun"), mailGunConfig,mtacontainer.NewThressHoldFailureStrategy(ERROR_THRESHOLD));
 	providers[1] = amazonsesprovider.New(utilities.GetLogger("amazonSES"), amazonConfig, mtacontainer.NewThressHoldFailureStrategy(ERROR_THRESHOLD));
-	providers[2] = sendgridprovider.New(utilities.GetLogger("SendGrid"), sendGridConfig, mtacontainer.NewThressHoldFailureStrategy(ERROR_THRESHOLD));
+	providers[2] = sendgridprovider.New(utilities.GetLogger("SendGrid"), sendgridConfig, mtacontainer.NewThressHoldFailureStrategy(ERROR_THRESHOLD));
 	var scheduler mtacontainer.Scheduler = mtacontainer.NewRoundRobinScheduler(providers);
 	return mtacontainer.New(scheduler),scheduler;
 }

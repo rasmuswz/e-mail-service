@@ -2,14 +2,12 @@
 //
 // In this file the MTA Container is tested.
 //
-//
+// Moved to utilities/tests to resolve cyclic dependency
 //
 
-package tests
+package test
 import (
-
 "testing"
-
 	"mail.bitlab.dk/mtacontainer"
 )
 
@@ -32,7 +30,7 @@ func Test_create(t *testing.T) {
 // UUT: MTAContainer
 //
 // ------------------------------------
-func Test_email_outgoing(t *testing.T) {
+func Testemail_outgoing(t *testing.T) {
 
 	provider := NewMockMTAProvider(t);
 

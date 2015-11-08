@@ -11,15 +11,25 @@
 package main
 import (
 	"mail.bitlab.dk/utilities"
-	"mail.bitlab.dk/utilities/tests"
-	"mail.bitlab.dk/mtacontainer/mailgun"
+	"mail.bitlab.dk/mtacontainer/mailgunprovider"
+	"mail.bitlab.dk/mtacontainer/test"
+	"os"
 )
 
 
 func main() {
+
+	if (len(os.Args) < 3) {
+		println("manual_test <to address> <key>");
+		return;
+	}
+
+	to := os.Args[1];
+	key := os.Args[2];
+
 	mailgunMTAProvider := mailgunprovider.New(utilities.GetLogger("MailGun"),
-		mailgunprovider.BitLabConfig("UberChallenge"),tests.NewMockFailureStrategy());
-	tests.ManuallyVerifyEmailSend(mailgunMTAProvider);
+		mailgunprovider.BitLabConfig(key),test.NewMockFailureStrategy());
+	test.ManuallyVerifyEmailSend(mailgunMTAProvider,to);
 }
 
 

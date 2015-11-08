@@ -1,3 +1,15 @@
+//
+//
+// The Client API runs an HTTPS-server for serving browser clients.
+// Upon requests it make internal connections on localhost to
+// the MTAContainer and the Backend as required.
+//
+// A special path prefix go.api/** is for ajax queries by the client
+// side Dart application.
+//
+// Author: Rasmus Winther Zakarias
+//
+
 package clientapi
 
 
@@ -17,6 +29,12 @@ import (
 	"bytes"
 )
 
+// ---------------------------------------------------------
+//
+//
+// Client API implementation
+//
+// ---------------------------------------------------------
 type ClientAPI struct {
 	docRoot string
 	mtacontainer.HealthService;
@@ -26,14 +44,11 @@ type ClientAPI struct {
 }
 
 
-func (a *ClientAPI) GetEvent() chan mtacontainer.Event {
-	return a.events;
-}
-
-
 // --------------------------------------------------------
 //
 // Create a Server for the website and ClientApi
+//
+//
 //
 // --------------------------------------------------------
 func New(docRoot string, port int) *ClientAPI {
@@ -46,6 +61,49 @@ func New(docRoot string, port int) *ClientAPI {
 	return result;
 }
 
+//
+// Allow clients to observe events
+//
+func (a *ClientAPI) GetEvent() chan mtacontainer.Event {
+	return a.events;
+}
+
+// ---------------------------------------------------------------------
+// The HTTPS end-point is configured here
+//
+// The client app can do five things on the go.api prefix
+//
+// All other requests are handled by the {viewHandler} serving
+// from the file system folder e-mail-service/dartworkspace/build/web.
+//
+// ---------------------------------------------------------------------
+
+func (a *ClientAPI) serve() {
+
+	var mux = http.NewServeMux();
+	mux.HandleFunc("/go.api/alive", a.alivePingHandler);
+	mux.HandleFunc("/go.api/login",  a.handleLogin);
+	mux.HandleFunc("/go.api/logout", a.logoutHandler);
+	mux.HandleFunc("/go.api/sendmail", a.sendMailHandler);
+	mux.HandleFunc("/go.api/getmail", a.getMailHandler);
+
+	mux.HandleFunc("/", a.viewHandler);
+
+
+	var addr = ":" + strconv.Itoa(a.port);
+	a.events <- mtacontainer.NewEvent(mtacontainer.EK_OK, errors.New("Serving on port: " + addr));
+
+	err := http.ListenAndServeTLS(addr, "cert.pem", "key.pem", mux);
+
+	if (err != nil) {
+		log.Fatalln("[ClientApi, Error] " + err.Error());
+	}
+}
+
+
+//
+// Heart-beat allow the client to know ClientAPI is still up.
+//
 func (ths *ClientAPI) alivePingHandler(w http.ResponseWriter, r *http.Request) {
 	version := utilities.GetString("https://localhost/version.txt");
 	w.Write([]byte(version));
@@ -53,6 +111,9 @@ func (ths *ClientAPI) alivePingHandler(w http.ResponseWriter, r *http.Request) {
 	r.Body.Close();
 }
 
+//
+// helper to {handleLogin}
+//
 func decodeBasicAuth(auth string, log *log.Logger) (string,string,bool) {
 	// TODO(rwz): We need to handle decoding error
 	var parts = strings.Split(auth," ");
@@ -71,6 +132,10 @@ func decodeBasicAuth(auth string, log *log.Logger) (string,string,bool) {
 	return username,password,true;
 }
 
+//
+//
+// Forward a login check to the backend
+//
 func (ths *ClientAPI) handleLogin(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close();
 
@@ -93,14 +158,13 @@ func (ths *ClientAPI) handleLogin(w http.ResponseWriter, r *http.Request) {
 	q := "/login?username="+username;
 	q += "&password="+password;
 
-	ths.log.Println("Wuhu we have user: "+username);
+
 	receiveBackendLoginQuery := "http://localhost" + utilities.RECEIVE_BACKEND_LISTEN_FOR_CLIENT_API + q;
-	ths.log.Println("Send query: "+receiveBackendLoginQuery);
+
 	resp, err := http.Get(receiveBackendLoginQuery);
 	if err == nil {
 		ths.log.Println("Ok connection to receiver backend");
 		sessionId, errAll := ioutil.ReadAll(resp.Body)
-		ths.log.Println("session id: "+string(sessionId));
 		if len(sessionId) < 64 {
 			ths.log.Println("Reporting back to UI that an error occured... "+goh.IntToStr(len(sessionId)));
 			http.Error(w,resp.Status,resp.StatusCode);
@@ -125,6 +189,10 @@ func (ths *ClientAPI) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+
+//
+// Handle User logout
+//
 func (a *ClientAPI) logoutHandler(w http.ResponseWriter, r *http.Request) {
 	var q = "/logout?session="+r.URL.Query().Get("session");
 	_,err := http.Get("http://localhost" + utilities.RECEIVE_BACKEND_LISTEN_FOR_CLIENT_API + q);
@@ -135,11 +203,6 @@ func (a *ClientAPI) logoutHandler(w http.ResponseWriter, r *http.Request) {
 	r.Body.Close();
 }
 
-func (a *ClientAPI) getMboxesHandler(w http.ResponseWriter, r * http.Request) {
-
-	a.log.Println("get mboxes not implemented yet.");
-
-}
 
 func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r * http.Request) {
 
@@ -190,7 +253,16 @@ func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r * http.Request) {
 	}
 }
 
-func (a *ClientAPI) getMailHandler(w http.ResponseWriter, r * http.Request) {
+
+// ---------------------------------------------------------
+//
+// Get Emails for logged in user. The query from the client
+// is forwarded to the Back-end for looking up INBOX entries
+// in the JSon-storage.
+//
+// ---------------------------------------------------------
+
+func (a *ClientAPI)getMailHandler(w http.ResponseWriter, r * http.Request) {
 
 	defer r.Body.Close();
 
@@ -225,28 +297,6 @@ func (a *ClientAPI) getMailHandler(w http.ResponseWriter, r * http.Request) {
 
 }
 
-func (a *ClientAPI) serve() {
-
-	var mux = http.NewServeMux();
-	mux.HandleFunc("/go.api/alive", a.alivePingHandler);
-	mux.HandleFunc("/go.api/login",  a.handleLogin);
-	mux.HandleFunc("/go.api/logout", a.logoutHandler);
-	mux.HandleFunc("/go.api/mboxes", a.getMboxesHandler);
-	mux.HandleFunc("/go.api/sendmail", a.sendMailHandler);
-	mux.HandleFunc("/go.api/getmail", a.getMailHandler);
-
-	mux.HandleFunc("/", a.viewHandler);
-
-
-	var addr = ":" + strconv.Itoa(a.port);
-	a.events <- mtacontainer.NewEvent(mtacontainer.EK_OK, errors.New("Serving on port: " + addr));
-
-	err := http.ListenAndServeTLS(addr, "cert.pem", "key.pem", mux);
-
-	if (err != nil) {
-		log.Fatalln("[ClientApi, Error] " + err.Error());
-	}
-}
 
 func (a *ClientAPI) clientApiHandler(w http.ResponseWriter, r *http.Request) {
 
