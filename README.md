@@ -88,17 +88,6 @@ the necessary ommands on the remote server to stop the running version and repla
 To get an overview of what it does see [fabfile.py](https://github.com/rasmuswz/e-mail-service/blob/master/fabfile.py). The deploy function near the bottom lays out what is going on. Old versions are kept on the servers until someone 
 logs-in and manually deletes them or reenables them in case of a faulty deployment.
 
-Is it feature complete?
---------------------
-No! The central MTA Container component is completed with Failover and Monitoring.
-To complete the functionallity of the UI as it is now, we also need to be able to 
-   * show incoming e-mails 
-   * receive e-mails from more MTAProviders
-   * manage different mail-boxes (sent, drafts etc.)
-
-Preparation is already done for some of this in the MTAServer and BackEndServer. For example, 
-the MailGun provider accepts incoming mails which are stored by the back-end.
-
 #Deploy, Test, Build, Get
 --------------------
 
