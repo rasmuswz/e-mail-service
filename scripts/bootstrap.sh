@@ -212,7 +212,7 @@ function install_golang_sdk() {
 	    sudo `which installer` -pkg go.pkg -target /
 	 fi
 
-    if [[ ! -f go.zip ]] && [[ ! -f go.pkg ]]; then
+    if [[ ! -f go.tgz ]] && [[ ! -f go.pkg ]]; then
 	    died "Didn't have go-lang sdk download for OSTYPE ${OSTYPE}"
 	    return 1;
 	 else
@@ -310,3 +310,7 @@ function main() {
 
 install_dart_sdk
 install_golang_sdk
+export PATH=`realpath ${SCRIPT_DIR}/../thirdparty/go/bin`:${PATH}:`realpath ${SCRIPT_DIR}/../thirdparty/dart-sdk/bin`
+export GOROOT=`realpath ${SCRIPT_DIR}/../thirdparty/go`
+export GOPATH=`realpath ${SCRIPT_DIR}/../goworkspace`
+

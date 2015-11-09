@@ -7,15 +7,18 @@ ApiDecryptionKey=${2}
 
 function stop() {
     sudo pgrep -f clientapiserver | xargs sudo kill -9
-    screen -S "backend" -X quit
-    screen -S "mtaserver" -X quit 
+    sudo pgrep -f backendserver | xargs kill -9
+    sudo pgrep -f mtaserver | xargs kill -9
 }
 
 
 function start() {
-    sudo screen -dmS "clientapi" goworkspace/bin/clientapiserver dartworkspace/build/web 443
-    screen -dmS "backend" goworkspace/bin/backendserver
-    screen -dmS "mtaserver" goworkspace/bin/mtaserver ${ApiDecryptionKey}
+    sudo goworkspace/bin/clientapiserver dartworkspace/build/web 443 > clientapi.log 2>&1 & 
+    disown $!
+    goworkspace/bin/mtaserver ${ApiDecryptionKey} > mtaserver.log 2>&1 &
+    disown $!
+    goworkspace/bin/backendserver > backend.log 2>&1 &
+    disown $!
 }
 
 case ${1} in
