@@ -76,15 +76,25 @@ func listenForSendBackEnd(container mtacontainer.MTAContainer) {
 }
 
 func promptUserToShutDownService() {
-	println("MTAServer running type \"q\"<enter> to stop it.");
-	in := bufio.NewReader(os.Stdin);
-	input := "";
-	for input != "q" {
-		i, _, err := in.ReadLine();
+	//
+	// Keep the main thread alive until the uses presse "q"
+	//
+	for {
+		println("type q to quit.");
+		var in = bufio.NewReader(os.Stdin);
+		var input, _, err = in.ReadLine();
 		if err != nil {
-			panic(err);
+			log.Println("Could not read line from Stdin... leaving");
+
+			return;
 		}
-		input = string(i);
+
+		if (strings.Compare("q", string(input)) == 0) {
+			
+			return;
+		}
+
+		println("Executing command \"" + string(input) + "\"");
 	}
 }
 
