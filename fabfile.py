@@ -323,7 +323,7 @@ def deploy_bitlab_servers():
 
 def go_servers(taggedDir,apiKey):
 
-        local("ssh "+env.host_string+ " cd \""+taggedDir+"\" scripts/start_servers.sh restart "+apiKey);
+        local("ssh "+env.host_string+ " \"cd deploy/"+taggedDir+" && scripts/start_servers.sh restart "+apiKey+"\"");
 
 @task
 @hosts(['ubuntu@mail1.bitlab.dk', 'rwz@mail0.bitlab.dk'])
