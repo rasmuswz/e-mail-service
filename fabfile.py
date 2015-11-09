@@ -318,3 +318,7 @@ def deploy_bitlab_servers():
         start_servers(taggedDir)
 
         print("Version " + tag + " has been deployed");
+
+@task
+@hosts(['ubuntu@mail1.bitlab.dk', 'rwz@mail0.bitlab.dk'])
+def go_servers():
