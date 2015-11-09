@@ -8,7 +8,7 @@ import (
 )
 
 
-const GREETING = "Uber Challenge - GeoMail by Bitlab - The localized e-mail"
+const GREETING = "Uber Challenge - BitMail by Bitlab - The reliable sender"
 const COPYRIGHT= "All rights are reserved (C) Rasmus Winther Zakarias"
 
 

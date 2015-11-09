@@ -2,11 +2,12 @@
 //
 // The ClientApi entry point.
 //
-// The process running this program will serve browser http requests on http://<domain>:<port>/*
-// except the special paths http://<domain>:<port>/go.api/* which will require
-// BasicAuth in the http-header and (if valid) carry out ClientApi commands,
-// like send an e-mail acquire GeoLists or list a range of mail headers from a
-// particular users MailBox. The go.api/* path is intended to serve the AJAX-requests
+// The process running this program will serve browser http requests on https://<domain>:<port>/*
+// for a <web root> directory provided on up start.
+//
+// The special paths http://<domain>:<port>/go.api/*  will require
+// BasicAuth in the http-header and (if valid) carry out ClientApi commands.
+// The go.api/* paths are intended to serve the AJAX-requests
 // issued by our JS-application running in the browser.
 //
 // See the {clientapi} package for more information.
