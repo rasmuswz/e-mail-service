@@ -86,10 +86,10 @@ def build_dartworkspace(tag):
 # Deploy self signed certificate for mail.bitlab.dk 
 # with its private key.
 #
-def decrypt_pack_and_send_certificate(taggedDir, tag):
+def decrypt_pack_and_send_certificate(taggedDir, tag, apiKey):
     certFile = "cert_" + tag + ".tgz"
     if not exists(taggedDir + "cert.pem"):
-        local("openssl rsa -in protectedkey.pem -out key.pem");  # Decrypt key
+        local("openssl rsa -in protectedkey.pem -out key.pem -passin pass:"+apiKey);  # Decrypt key
         local("tar cmvzf cert_" + tag + ".tgz cert.pem key.pem scripts");
         put(certFile, taggedDir)
         run("tar xmfz " + taggedDir + "/" + certFile + " -C " + taggedDir);
@@ -214,9 +214,8 @@ def start_mta_server(taggedDir):
     restart_named_screen_session(taggedDir, False, mtaSrvExe, "MTAServer");
 
 
-def start_servers(taggedDir):
+def start_servers(taggedDir,key):
     with cd(taggedDir):
-        key = getpass("Api Decryption Key (the start-up passphrase): ");
         run("scripts/start_servers.sh restart " + key);
 
 
@@ -296,6 +295,9 @@ def test_manual():
 @hosts(['ubuntu@mail1.bitlab.dk', 'rwz@mail0.bitlab.dk'])
 def deploy_bitlab_servers():
     """Deploy this workspace on the bitlab servers: mail0.bitlab.dk and mail1.bitlab.dk"""
+
+    apiKey = getpass("Api Decryption Key (the start-up passphrase): ");
+
     sync_with_git()
 
     run("mkdir -p deploy");
@@ -311,14 +313,24 @@ def deploy_bitlab_servers():
 
         build_remote_goworkspace(absolute_path_to_gosdk_bin, taggedDir + "/goworkspace")
 
-        decrypt_pack_and_send_certificate(taggedDir, tag)
+        decrypt_pack_and_send_certificate(taggedDir, tag, apiKey)
 
         deploy_version_number(taggedDir, tag);
 
-        start_servers(taggedDir)
+        start_servers(taggedDir,apiKey)
 
         print("Version " + tag + " has been deployed");
 
 @task
 @hosts(['ubuntu@mail1.bitlab.dk', 'rwz@mail0.bitlab.dk'])
 def go_servers():
+
+    apiKey = getpass("Api Decryption Key (the start-up passphrase): ");
+
+    with cd("deploy"):
+
+        tag = make_git_tag()
+
+        taggedDir = make_and_return_name_of_tagged_directory(tag)
+
+        start_servers(taggedDir, apiKey)
