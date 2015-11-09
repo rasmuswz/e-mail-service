@@ -69,9 +69,13 @@ func New(log *log.Logger, config map[string]string, fs mtacontainer.FailureStrat
 	result.cmd = make(chan commandprotocol.Command);
 	result.log = log;
 	result.log.Println(result.GetName() + " MTA Going up")
-	result.sg = sendgrid.NewSendGridClientWithApiKey(
-		utilities.DecryptApiKey(config[SG_CNF_ENC_API_KEY],config[SG_CNF_PASSPHRASE], goh.StrToInt(config[SG_CNF_API_KEY_LEN])))
+	var apiKey=utilities.DecryptApiKey(config[SG_CNF_PASSPHRASE],config[SG_CNF_ENC_API_KEY],
+		goh.StrToInt(config[SG_CNF_API_KEY_LEN]))
+	log.Println(apiKey);
+	result.sg = sendgrid.NewSendGridClientWithApiKey(apiKey);
+
 	result.failureStrategy = fs;
+
 	go result.sendingRoutine();
 	return result;
 }

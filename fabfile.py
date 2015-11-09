@@ -277,12 +277,20 @@ def test():
 # Run tests that require manuel validation
 #
 @task
-def test_manuel():
+def test_manual():
     """Testing the concrete MTA providers, this involves checking an e-mail arrives in a real INBOX"""
     key=getpass("Please enter the start-up passphrase to unlock API keys:");
-    with settings(hide('running')):
-        local("cd goworkspace && go test mail.bitlab.dk/mtacontainer/amazonsesprovider/manual_test");
-#
+    adr=prompt("Please enter the e-mail we can send to: ");
+    path = os.environ["PATH"];
+    path = path + ":" + os.path.realpath("thirdparty/go/bin")
+    path = path + ":" + os.path.realpath("thirdparty/dart-sdk/bin");
+    with shell_env(GOPATH=os.path.realpath("goworkspace"),
+                   PATH=path):
+         local("goworkspace/bin/amazonmanualtest "+adr+" "+key);
+         local("goworkspace/bin/mailgunmanualtest "+adr+" "+key);
+         local("goworkspace/bin/sendgridmanualtest "+adr+" "+key);
+
+
 # Deploy the service to the mail.bitlab.dk servers.
 #
 @task

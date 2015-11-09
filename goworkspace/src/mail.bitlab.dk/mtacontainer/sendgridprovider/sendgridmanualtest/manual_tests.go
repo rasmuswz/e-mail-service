@@ -26,8 +26,9 @@ func main() {
 	to := os.Args[1];
 	key := os.Args[2];
 
+	config := sendgridprovider.BitLabConfig(key);
 	sendgridMTAProvider := sendgridprovider.New(utilities.GetLogger("SendGrid"),
-		 sendgridprovider.BitLabConfig(key),test.NewMockFailureStrategy());
+		config,test.NewMockFailureStrategy());
 	test.ManuallyVerifyEmailSend(sendgridMTAProvider,to);
 }
 
