@@ -133,6 +133,7 @@ func main() {
 	//
 	// Take control for terminal
 	//
-	promptUserToShutDownService();
+	//promptUserToShutDownService();
+	for{}
 	return;
 }
