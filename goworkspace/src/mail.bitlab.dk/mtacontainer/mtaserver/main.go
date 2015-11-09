@@ -85,12 +85,11 @@ func promptUserToShutDownService() {
 		var input, _, err = in.ReadLine();
 		if err != nil {
 			log.Println("Could not read line from Stdin... leaving");
-
 			return;
 		}
 
 		if (strings.Compare("q", string(input)) == 0) {
-			
+
 			return;
 		}
 
@@ -143,7 +142,10 @@ func main() {
 	//
 	// Take control for terminal
 	//
-	promptUserToShutDownService();
+	for {
+		e := <-container.GetEvent();
+		log.Println(e.GetError());
+	}
 
 	return;
 }

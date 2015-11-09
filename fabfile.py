@@ -299,7 +299,7 @@ def deploy_bitlab_servers():
     apiKey = getpass("Api Decryption Key (the start-up passphrase): ");
 
     sync_with_git()
-
+ 
     run("mkdir -p deploy");
 
     with cd("deploy"):
