@@ -317,7 +317,7 @@ def deploy_bitlab_servers():
 
         deploy_version_number(taggedDir, tag);
 
-        go_servers(tag,taggedDir,apiKey)
+        go_servers(taggedDir,apiKey)
 
         print("Version " + tag + " has been deployed");
 
@@ -329,7 +329,7 @@ def go_servers(taggedDir,apiKey):
 @hosts(['ubuntu@mail1.bitlab.dk', 'rwz@mail0.bitlab.dk'])
 def run_restart():
     apiKey=getpass("ApiKey: ");
-    
+
     with cd("deploy"):
 
         tag = make_git_tag()
