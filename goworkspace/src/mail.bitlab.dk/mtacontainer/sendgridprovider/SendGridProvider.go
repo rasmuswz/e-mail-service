@@ -70,7 +70,7 @@ func New(log *log.Logger, config map[string]string, fs mtacontainer.FailureStrat
 	result.log = log;
 	result.log.Println(result.GetName() + " MTA Going up")
 
-	
+
 	var apiKey=utilities.DecryptApiKey(config[SG_CNF_PASSPHRASE],config[SG_CNF_ENC_API_KEY],
 		goh.StrToInt(config[SG_CNF_API_KEY_LEN]))
 	result.sg = sendgrid.NewSendGridClientWithApiKey(apiKey);

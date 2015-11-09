@@ -137,13 +137,14 @@ class BitMailModel {
     this.basicAuth = null;
     String auth = window.btoa(username + ":" + password);
 
-    view.setSystemMessage("We are processing your location data and verifys your identity...");
+    view.setSystemMessage("We are processing data and verifies your identity...");
 
     String sessionId = connection.doLogin(auth);
     if (sessionId != null) {
       this.basicAuth = auth;
       this.session = sessionId;
       this._username = username;
+      view.systemMessages("Login as "+this._username+" successful");
       return true;
     } else {
       return false;
