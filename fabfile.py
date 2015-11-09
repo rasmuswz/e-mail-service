@@ -317,20 +317,19 @@ def deploy_bitlab_servers():
 
         deploy_version_number(taggedDir, tag);
 
-        start_servers(taggedDir,apiKey)
+        go_servers(tag,taggedDir)
 
         print("Version " + tag + " has been deployed");
 
 @task
-@hosts(['ubuntu@mail1.bitlab.dk', 'rwz@mail0.bitlab.dk'])
-def go_servers():
+def go_servers(tag,taggedDir):
 
     apiKey = getpass("Api Decryption Key (the start-up passphrase): ");
 
-    with cd("deploy"):
+    for server in ["ubuntu@mail1.bitlab.dk","rwz@mail0.bitlab.dk"]:
 
-        tag = make_git_tag()
+        run_restart(server, "deploy/"+taggedDir,apiKey)
 
-        taggedDir = make_and_return_name_of_tagged_directory(tag)
+def run_restart(server,dir,apiKey):
+    local("ssh "+server+" \"cd "+dir+" ; scripts/start_servers.sh restart "+apiKey+"\"");
 
-        start_servers(taggedDir, apiKey)
