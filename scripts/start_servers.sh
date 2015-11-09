@@ -27,7 +27,7 @@ case ${1} in
 	;;
     restart)
 	stop
-	start;
+	start
 	;;
 	*)
 	echo "Start script supports start, stop, and restart."
