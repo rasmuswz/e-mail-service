@@ -217,8 +217,7 @@ def start_mta_server(taggedDir):
 def start_servers(taggedDir):
     with cd(taggedDir):
         key = getpass("Api Decryption Key (the start-up passphrase): ");
-        with settings(hide('running')):
-            run("scripts/start_servers.sh restart " + key);
+        run("scripts/start_servers.sh restart " + key);
 
 
 def write_tag_in_file(filename, tag, destination):
@@ -297,7 +296,7 @@ def test_manual():
 @hosts(['ubuntu@mail1.bitlab.dk', 'rwz@mail0.bitlab.dk'])
 def deploy_bitlab_servers():
     """Deploy this workspace on the bitlab servers: mail0.bitlab.dk and mail1.bitlab.dk"""
-    #sync_with_git()
+    sync_with_git()
 
     run("mkdir -p deploy");
 

@@ -144,7 +144,7 @@ class BitMailModel {
       this.basicAuth = auth;
       this.session = sessionId;
       this._username = username;
-      view.systemMessages("Login as "+this._username+" successful");
+      view.systemMessages.display("Login as "+this._username+" successful");
       return true;
     } else {
       return false;
