@@ -13,6 +13,12 @@ import (
 	"time"
 	"log"
 	"mail.bitlab.dk/utilities"
+	"errors"
+	"encoding/json"
+	"net/http"
+	"mail.bitlab.dk/utilities/commandprotocol"
+	"bytes"
+"strings"
 )
 
 type EventKind uint32;
@@ -38,7 +44,11 @@ const (
 // from this.
 	EK_FATAL = 0x06;
 // We failed, and Payload needs to be submitted else where.
-	EK_RESUBMIT = 0x07
+	EK_RESUBMIT = 0x07;
+	// We must inform the user
+	EK_INFORM_USER = 0x08;
+	// ShutDown container, this event releases the main go routine and tearsdown the application.
+	EK_GOOD_BYE = 0x09;
 )
 
 // ------------------------------------------------------------------
@@ -209,6 +219,7 @@ type DefaultMTAContainer struct {
 	incoming  chan model.Email;
 	outgoing  chan model.Email;
 	events    chan Event;
+	cmd       chan commandprotocol.Command;
 	log       *log.Logger;
 }
 
@@ -238,6 +249,7 @@ func (d *DefaultMTAContainer) Stop() {
 		var provider = d.providers[i];
 		provider.Stop();
 	}
+	d.cmd <- commandprotocol.CMD_MTA_PROVIDER_SHUTDOWN;
 }
 
 //
@@ -304,6 +316,8 @@ func New(scheduler Scheduler) MTAContainer {
 						if len(result.scheduler.GetProviders()) < 1 {
 							result.log.Println("No MTA Providers left we shutdown.")
 							result.Stop();
+							result.events <- NewEvent(EK_GOOD_BYE,errors.New("Container shuts down"));
+							return;
 						}
 					}
 				}
@@ -316,10 +330,16 @@ func New(scheduler Scheduler) MTAContainer {
 	// upon receiving an e-mail to send, schedule and dispatch
 	go func() {
 		for {
+
 			var email = <-result.outgoing;
 			provider := result.scheduler.Schedule();
 			if provider == nil {
 				result.log.Println("Scheduler gave nil Provider");
+				n := len(result.outgoing);
+				for j := 0; j < n; j++ {
+					result.events <- NewEvent(EK_INFORM_USER,errors.New("No MTAs availble email not sent: "+
+						email.GetHeader(model.EML_HDR_SUBJECT)));
+				}
 				return; // no more MTAs
 			}
 			result.log.Println("Scheduling mail for sending on " + provider.GetName());
@@ -327,7 +347,95 @@ func New(scheduler Scheduler) MTAContainer {
 		}
 	}();
 
+	go result.forwardIncomingMailToBackend();
+	go result.listenForSendBackEnd();
+
 	return result;
 }
 
+// ---------------------------------------------------------------
+//
+//
+// Listening for ClientAPI to request sending e-mail
+//
+//
+// ---------------------------------------------------------------
+func (c *DefaultMTAContainer) listenForSendBackEnd() {
+
+	var mux = http.NewServeMux();
+	mux.HandleFunc("/sendmail",
+		func(w http.ResponseWriter, r *http.Request) {
+			defer r.Body.Close();
+
+
+			wireMail := model.NewWireEMailFromReader(r.Body);
+			if wireMail == nil {
+				log.Println("Error: Could not deserialise data.");
+				http.Error(w, "Unable to deserialize request. Revise your email.", http.StatusBadRequest);
+				return;
+			}
+
+
+			// For multiple recipients we send one email object each to
+			// get more fair scheduling of providers.
+			tos := strings.Split(wireMail.To(), ",");
+			for m := range tos {
+				wireMail.SetTo(tos[m]);
+				c.GetOutgoing() <- wireMail.ToEmail();
+			}
+
+		});
+
+	http.ListenAndServe(utilities.MTA_LISTENS_FOR_SEND_BACKEND, mux);
+
+}
+
+
+//
+// Someday we may be able to receive mails too. mail.bitlab.dk is configured
+// s.t. mails can be delivered via MailGun and Amazon. We would need to implement an
+// open port in the providers implementing Web-API delivery of email...
+//
+// When that is done we would forward such inbound e-mails to the BackEnd for storage
+// for later retrieval by the ClientAPI on behalf of an Inbox-display UI component.
+//
+//
+func (c *DefaultMTAContainer) forwardToBackend(mail model.Email) {
+
+	c.log.Println("Received email for delivery, forwarding it to Receive Backend");
+
+
+	serJemail,errSerJemail := json.Marshal(mail);
+	if errSerJemail != nil {
+		println("Cannot serialise message.");
+		return;
+	}
+
+	var url = "http://localhost"+utilities.RECEIVE_BACKEND_LISTENS_FOR_MTA+"/newmail";
+	log.Println("Contacting receive back end at: "+url);
+
+
+	resp, err := http.Post(url,"text/json",bytes.NewReader(serJemail));
+	defer resp.Body.Close();
+	if err != nil {
+		c.events <- NewEvent(EK_WARNING,err);
+	}
+}
+
+
+
+func (c * DefaultMTAContainer) forwardIncomingMailToBackend() {
+
+	for {
+		select {
+		case receivedMail := <-c.GetIncoming():
+			c.forwardToBackend(receivedMail);
+		case cmd := <-c.cmd:
+			if cmd == commandprotocol.CMD_MTA_PROVIDER_SHUTDOWN {
+				c.log.Println("Forwading of incoming mails has been discontinued by shutdown command");
+				return;
+			}
+		}
+	}
+}
 

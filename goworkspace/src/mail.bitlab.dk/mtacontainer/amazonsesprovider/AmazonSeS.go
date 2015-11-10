@@ -9,11 +9,10 @@ import (
 	"mail.bitlab.dk/utilities/go"
 	"errors"
 	"github.com/aws/aws-sdk-go/aws"
-//	"time"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"time"
 	"mail.bitlab.dk/utilities"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 );
 
 //
@@ -138,24 +137,58 @@ func (ths *AmazonMtaProvider) serviceSendingEmails() {
 			} };
 
 
+			//
+			// Amazon errors are described here:
+			// http://docs.aws.amazon.com/ses/latest/APIReference/CommonErrors.html
+			// we take the interpretation that 500 and above means the service is suffering
+			// down time. 400 means the message is somehow not properly formatted e.g.
+			// it doesn't conform to MIME-rules and no further processing of the message
+			// will take place.
+			//
 			resp, err := ths.amazonApi.SendRawEmail(params)
 
-			if err != nil {
-				ths.log.Println("[Critical] Failed to send E-mail. Please examine !!!\n", err.Error());
 
-				if (ths.failureStrategy.Failure(mtacontainer.EK_CRITICAL) == false) {
-					ths.events <- mtacontainer.NewEvent(mtacontainer.EK_WARNING, err, ths);
-					// critical failure, fallback
-					time.Sleep(time.Second * 2);
-					// resubmit e-mail to the service
-					//ths.outgoing <- mailToSend;
+
+			if err != nil {
+				var ok bool = false;
+				var amazonError awserr.RequestFailure;
+				amazonError, ok = err.(awserr.RequestFailure);
+
+				//
+				// is it a request error we can determine what actions to take based on the
+				// status code.
+				// Otherwise we are a bit in the dark assuming the worst we invoke the failureStrategy.
+				//
+				//
+				if ok {
+					code := amazonError.StatusCode();
+
+					// service suffers resubmit and invoke failureStrategy
+					if code > 500 {
+						ths.events <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT, err, mail);
+						if (ths.failureStrategy.Failure(mtacontainer.EK_CRITICAL) == true) {
+							// Report Amazon SES as down, Ask the MTA to fail over this service.
+							//ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, err, mailToSend);
+							ths.log.Println("Amazon Service Provider had too many errors and shuts down.");
+							ths.Stop();
+						}
+						continue;
+					}
+
+					// message is malformed, discard it but inform the log
+					ths.events <- mtacontainer.NewEvent(mtacontainer.EK_INFORM_USER, errors.New("Message not sent: " + err.Error()), mail);
+					continue;
 				} else {
-					// Report Amazon SES as down, Ask the MTA to fail over this service.
-					//ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, err, mailToSend);
-					ths.log.Println("Amazon Service Provider had too many errors and shuts down.");
-					ths.Stop();
+
+					// A generic Amazon error occurred.
+					if (ths.failureStrategy.Failure(mtacontainer.EK_CRITICAL) == true) {
+						// Report Amazon SES as down, Ask the MTA to fail over this service.
+						//ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, err, mailToSend);
+						ths.log.Println("Amazon Service Provider had too many errors and shuts down.");
+						ths.Stop();
+						continue;
+					}
 				}
-				continue;
 			}
 
 			log.Println(resp);

@@ -40,7 +40,7 @@ type SendGridProvider struct {
 
 
 func (ths *SendGridProvider) Stop() {
-
+	ths.cmd <- commandprotocol.CMD_MTA_PROVIDER_SHUTDOWN;
 }
 
 func (ths *SendGridProvider) GetOutgoing() chan model.Email {
@@ -118,10 +118,7 @@ func (ths *SendGridProvider) sgSend(m model.Email) {
 			message.AddHeader(k, m.GetHeader(k));
 		}
 	}
-
 	message.SetText(m.GetContent());
-
-
 
 	err := ths.sg.Send(message)
 
@@ -129,7 +126,7 @@ func (ths *SendGridProvider) sgSend(m model.Email) {
 	if err != nil {
 		ths.log.Println(err.Error())
 		if (ths.failureStrategy.Failure(mtacontainer.EK_CRITICAL) == false) {
-			ths.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
+			ths.events <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT, errors.New("Sendgrid resubmits mail"),m);
 		} else {
 			ths.Stop(); // we are officially going down
 			ths.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, err);

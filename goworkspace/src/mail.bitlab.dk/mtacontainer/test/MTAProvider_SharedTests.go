@@ -51,7 +51,7 @@ func ManuallyVerifyEmailSend(provider mtacontainer.MTAProvider, to string)  {
 	}();
 
 	// Send verification email
-	mail := model.NewMailS("Test\nTest\nTest",
+	mail := model.NewMailSimpleHeaders("Test\nTest\nTest",
 		map[string]string {
 			"To": to,
 			"From": "test@mail.bitlab.dk",

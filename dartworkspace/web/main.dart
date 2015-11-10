@@ -43,12 +43,14 @@ bool checkValidLogin(String username) {
 }
 
 bool checkValidEmailTo(String mail) {
-  if (mail.codeUnits.contains("@") == false) {
+  if (mail.codeUnits.contains('@'.codeUnits[0]) == false) {
+    print("No @ sign in e-mail address: ${mail}");
     return false;
   }
 
   var parts = mail.split("@");
   if (parts.length != 2) {
+    print("Parts length not 2 ${parts.length}: ${mail}");
     return false;
   }
 
@@ -56,7 +58,7 @@ bool checkValidEmailTo(String mail) {
 }
 
 bool checkToHeader(String to) {
-  checkValidInput(to,username,"abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ@0123456789,".codeUnits);
+  checkValidInput(to,"abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ@0123456789,.".codeUnits);
 
   List<String> a = to.split(",");
   a.forEach( (mailAddr) {

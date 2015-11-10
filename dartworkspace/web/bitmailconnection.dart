@@ -9,8 +9,9 @@
 
 import 'dart:async';
 import 'dart:html';
-import 'dart:convert';
 import 'mailmodel.dart';
+
+type PingMessageDisplayer(String pingMessage);
 
 /**
  *
@@ -109,9 +110,11 @@ class ClientAPI {
   bool _previousAlive;
   List<ConnectionListener> stateListeners;
   String authorization;
+  PingMessageDisplayer pingMsgDisp;
 
 
-  ClientAPI(String path) {
+
+  ClientAPI(String path,this.pingMsgDisp) {
     this._path = path;
     _previousAlive = false;
     new Timer.periodic(new Duration(seconds: 5), _check);
@@ -162,6 +165,9 @@ class ClientAPI {
       });
       _previousAlive = _alive;
     }
+    if (resp.Text.startsWith("!")) {
+      this.pingMsgDisp(resp.Text.substring(1));
+    }
   }
 
 
@@ -180,7 +186,7 @@ class ClientAPI {
    * Send an e-mail for delivery
    */
   QueryResponse SendAnEmail(Email email, String sessionId) {
-    String jsonString = email.toJson();
+    String jsonString = email.toWireMail();
     print("Sending data: "+jsonString);
     QueryResponse response = PostQuery(_path + "/sendmail", jsonString,
           {"SessionId": sessionId}  );

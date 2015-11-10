@@ -1,13 +1,20 @@
+//
+//
+// This file describes how we represent {Email}s in memory
+// and on the Wire.
+//
+// Author: Rasmus Winther Zakarias.
+//
+
 package model
 import (
-	"strings"
-	"net/mail"
 	"io/ioutil"
 	"log"
-	"fmt"
 	"encoding/base64"
-	"math"
 	"bytes"
+	"io"
+	"encoding/json"
+	"encoding/hex"
 )
 /**
  *
@@ -31,6 +38,83 @@ type Email interface {
 
 }
 
+// ----------------------------------------------------
+//
+// WireEmail is the serialized form of an email in this
+// application. We use json.Marshal and json.Unmarshal
+// to put and get WireEmail objects on/of the wire.
+//
+// On the wire content is encoded as base64
+//
+// ----------------------------------------------------
+type WireEmail struct {
+	Headers map[string]string;
+	Content string;
+}
+
+func (ths *WireEmail) To() string {
+	return ths.Headers[EML_HDR_TO];
+}
+
+func (ths *WireEmail) SetTo(to string) {
+	ths.Headers[EML_HDR_TO] = to;
+}
+
+//
+// Convert an {WireEmail} to {Email}. Data is copied
+// {ths} remains intact.
+//
+func (ths * WireEmail) ToEmail() Email {
+	result := new(EmailImpl);
+
+	str,strErr := base64.StdEncoding.DecodeString(ths.Content);
+	if strErr != nil {
+		return nil;
+	}
+	result.content = string(str);
+	result.headers = make(map[string][]string);
+	for k,v := range ths.Headers {
+		result.headers[k] = []string{v};
+	}
+
+	return result;
+}
+
+//
+// Vice versa
+//
+func NewWireEmail(mail Email) *WireEmail{
+	result := new(WireEmail);
+	result.Headers = make(map[string]string);
+	for k,v := range mail.GetHeaders() {
+		if len(result.Headers[k]) > 0 {
+			result.Headers[k] = v[0];
+		}
+	}
+	result.Content = base64.StdEncoding.EncodeToString([]byte(mail.GetContent()));
+	return result;
+}
+
+//
+// Read an Email of the wire.
+//
+func NewWireEMailFromReader(reader io.Reader) *WireEmail {
+	result := new(WireEmail);
+
+	data,dataErr := ioutil.ReadAll(reader);
+	if dataErr != nil {
+		log.Println("[WireEmail] Reading data stream failed. "+dataErr.Error());
+		return nil;
+	}
+
+	resultErr := json.Unmarshal(data,result);
+	if resultErr != nil {
+		log.Println("[WireEmail] "+resultErr.Error()+"\nOffending data:\n"+hex.Dump(data));
+		return nil;
+	}
+
+	return result;
+}
 
 // ---------------------------------------------------
 //
@@ -76,42 +160,6 @@ func (em *EmailImpl) GetContent() string {
 	return em.content;
 }
 
-func encodeRFC2047(String string) string {
-	// use mail's rfc2047 to encode any string
-	addr := mail.Address{String, ""}
-	return strings.Trim(addr.String(), " <>")
-}
-
-func (em *EmailImpl) pp() []byte {
-	var parser mail.AddressParser = mail.AddressParser{};
-	from, _ := parser.Parse(em.headers[EML_HDR_FROM][0]);
-	to, _ := parser.Parse(em.headers[EML_HDR_TO][0]);
-	body := em.content;
-
-	header := make(map[string]string)
-	header[EML_HDR_FROM] = from.String()
-	header[EML_HDR_TO] = to.String()
-	header[EML_HDR_SUBJECT] = em.headers[EML_HDR_SUBJECT][0];
-	header["MIME-Version"] = "1.0"
-	header["Content-Type"] = "text/plain; charset=\"utf-8\""
-	header["Content-Transfer-Encoding"] = "base64"
-
-	message := ""
-	for k, v := range header {
-		message += fmt.Sprintf("%s: %s\n", k, v)
-	}
-	message += "\n" + base64.StdEncoding.EncodeToString([]byte(body))
-
-	log.Println("[GetRaw]:\n"+message);
-
-	var src []byte = []byte(body);
-	n := len(src);
-	var dst []byte = make([]byte,  (int(math.Floor(  float64(n / 3))) + 1) * 4 + 1);
-	base64.StdEncoding.Encode(dst,src);
-
-	return dst;
-}
-
 func (em *EmailImpl) GetRaw() []byte {
 	buffer := bytes.NewBuffer(nil);
 	for k, v := range em.GetHeaders() {
@@ -123,23 +171,6 @@ func (em *EmailImpl) GetRaw() []byte {
 	return buffer.Bytes();
 }
 
-func NewEmailFromBytes(data []byte) Email {
-	result := EmailImpl{}
-
-	r := strings.NewReader(string(data));
-	m, err := mail.ReadMessage(r);
-
-	if err != nil {
-		return nil;
-	}
-
-	content, err := ioutil.ReadAll(m.Body);
-	result.content = string(content);
-	result.headers = m.Header;
-
-	return &result;
-}
-
 func NewMail(content string, headers map[string][]string) Email {
 	var result = new(EmailImpl);
 	result.content = content;
@@ -147,7 +178,7 @@ func NewMail(content string, headers map[string][]string) Email {
 	return result;
 }
 
-func NewMailS(content string, headers map[string]string) Email {
+func NewMailSimpleHeaders(content string, headers map[string]string) Email {
 
 	mail := new(EmailImpl);
 	mail.headers = make(map[string][]string);
@@ -159,5 +190,4 @@ func NewMailS(content string, headers map[string]string) Email {
 	}
 
 	return mail;
-
 }

@@ -180,3 +180,4 @@ func CheckAuthorizedUser(store JSonStore, req *http.Request) (string, bool) {
 		return username, false;
 	}
 }
+

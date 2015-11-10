@@ -45,7 +45,7 @@ class Email {
     return json;
   }
 
-  String toJson() {
+  String toWireMail() {
     return """
       {"Headers":{"From":"${this._from}","Subject":"${this._subject}","Content-Type": "text/plain; charset=UTF-8",
        "To":"${this._to}"},"Content":"${window.btoa(this._content)}"}""";
