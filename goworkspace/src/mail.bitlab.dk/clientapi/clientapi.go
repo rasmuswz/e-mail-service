@@ -143,7 +143,7 @@ func (ths *ClientAPI) alivePingHandler(w http.ResponseWriter, r *http.Request) {
 
 	if m,ok := ths.pendingMessages[sessionId]; ok {
 		msg := m[0];
-		w.Write([]byte(msg));
+		w.Write([]byte("!"+msg));
 		if len(m) < 2 {
 			delete(ths.pendingMessages,sessionId);
 		} else {
