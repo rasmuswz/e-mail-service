@@ -145,6 +145,8 @@ func New(log *log.Logger, config map[string]string, fs mtacontainer.FailureStrat
 	go result.sendingRoutine();
 	//go result.receivingRoutine();
 
+	log.Println(result.GetName() + " MTA Going up")
+
 	// send initial "MG is in the Air"-message to Admin
 	//result.sendMaintanenceMessage("Admin,\nPlease find the MailGun MTA provider is up.");
 

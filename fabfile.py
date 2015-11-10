@@ -295,11 +295,18 @@ def test_manual():
 @hosts(['ubuntu@mail1.bitlab.dk', 'rwz@mail0.bitlab.dk'])
 def deploy_bitlab_servers():
     """Deploy this workspace on the bitlab servers: mail0.bitlab.dk and mail1.bitlab.dk"""
+    deploy()
 
+@task
+@hosts(['ubuntu@dev.bitlab.dk'])
+def stage_deploy():
+    deploy()
+
+def deploy():
     apiKey = getpass("Api Decryption Key (the start-up passphrase): ");
 
     sync_with_git()
- 
+
     run("mkdir -p deploy");
 
     with cd("deploy"):

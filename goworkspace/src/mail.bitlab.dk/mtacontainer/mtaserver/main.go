@@ -65,7 +65,7 @@ func listenForSendBackEnd(container mtacontainer.MTAContainer) {
 
 			tos := strings.Split(jemail.Headers["To"], ",");
 			for m := range tos {
-				jemail.Headers["To"] = tos[m];
+				jemail.Headers["To"] = strings.Trim(tos[m]," ");
 				container.GetOutgoing() <- model.NewMailS(jemail.Content, jemail.Headers);
 			}
 
