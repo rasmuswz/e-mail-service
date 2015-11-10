@@ -14,6 +14,7 @@ import (
 	"mail.bitlab.dk/mtacontainer"
 	"mail.bitlab.dk/utilities/go"
 	"strings"
+	"mail.bitlab.dk/model"
 )
 
 // ---------------------------------------------------------
@@ -50,7 +51,12 @@ func ManuallyVerifyEmailSend(provider mtacontainer.MTAProvider, to string)  {
 	}();
 
 	// Send verification email
-	mail := FreshTestMail(provider, to);
+	mail := model.NewMailS("Test\nTest\nTest",
+		map[string]string {
+			"To": to,
+			"From": "test@mail.bitlab.dk",
+			"Subject": "Test email"});
+
 	provider.GetOutgoing() <- mail;
 
 	// wait for manual verification.

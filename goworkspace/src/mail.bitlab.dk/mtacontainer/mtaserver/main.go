@@ -21,6 +21,7 @@ import (
 
 	"io/ioutil"
 	"strings"
+	"encoding/base64"
 )
 
 
@@ -66,10 +67,17 @@ func listenForSendBackEnd(container mtacontainer.MTAContainer) {
 
 			log.Println("Encoded content: "+jemail.Content);
 
+			//
+			// Receive b64 encoded content, decode it
+			//
+			var c,_ = base64.StdEncoding.DecodeString(jemail.Content);
+
+			var decodedContent string = string(c);
+
 			tos := strings.Split(jemail.Headers["To"], ",");
 			for m := range tos {
 				jemail.Headers["To"] = strings.Trim(tos[m]," ");
-				container.GetOutgoing() <- model.NewMailS(jemail.Content, jemail.Headers);
+				container.GetOutgoing() <- model.NewMailS(decodedContent, jemail.Headers);
 			}
 
 		});

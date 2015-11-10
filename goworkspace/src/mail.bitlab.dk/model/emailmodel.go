@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"encoding/base64"
 	"math"
+	"bytes"
 )
 /**
  *
@@ -84,7 +85,7 @@ func encodeRFC2047(String string) string {
 func (em *EmailImpl) pp() []byte {
 	var parser mail.AddressParser = mail.AddressParser{};
 	from, _ := parser.Parse(em.headers[EML_HDR_FROM][0]);
-	to, _ := parser.Parse(em.headers[EML_HDR_FROM][0]);
+	to, _ := parser.Parse(em.headers[EML_HDR_TO][0]);
 	body := em.content;
 
 	header := make(map[string]string)
@@ -97,9 +98,9 @@ func (em *EmailImpl) pp() []byte {
 
 	message := ""
 	for k, v := range header {
-		message += fmt.Sprintf("%s: %s\r\n", k, v)
+		message += fmt.Sprintf("%s: %s\n", k, v)
 	}
-	message += "\r\n" + base64.StdEncoding.EncodeToString([]byte(body))
+	message += "\n" + base64.StdEncoding.EncodeToString([]byte(body))
 
 	log.Println("[GetRaw]:\n"+message);
 
@@ -112,7 +113,14 @@ func (em *EmailImpl) pp() []byte {
 }
 
 func (em *EmailImpl) GetRaw() []byte {
-	return em.pp();
+	buffer := bytes.NewBuffer(nil);
+	for k, v := range em.GetHeaders() {
+		buffer.WriteString(k + ":" + v[0] + "\n");
+	}
+	buffer.WriteString("\n");
+	buffer.WriteString(em.GetContent());
+
+	return buffer.Bytes();
 }
 
 func NewEmailFromBytes(data []byte) Email {

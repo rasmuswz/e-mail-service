@@ -15,8 +15,6 @@ import (
 	"mail.bitlab.dk/mtacontainer"
 	"mail.bitlab.dk/utilities"
 	"mail.bitlab.dk/utilities/go"
-	"bytes"
-	"io/ioutil"
 )
 
 const (
@@ -178,19 +176,12 @@ func (mgp *MailGunProvider) sendingRoutine() {
 
 func (mgp *MailGunProvider) mgSend(m model.Email) {
 
-//
-//	var message = mgp.mg.NewMessage(m.GetHeader(model.EML_HDR_FROM),
-//		m.GetHeader(model.EML_HDR_SUBJECT),
-//		stringContent,
-//		m.GetHeader(model.EML_HDR_TO));
-//	for k,_ := range m.GetHeaders() {
-//		if k != model.EML_HDR_SUBJECT && k != model.EML_HDR_FROM && k != model.EML_HDR_TO {
-//			log.Println("Adding header: h["+k+"]="+m.GetHeader(k));
-//			message.AddHeader(k, m.GetHeader(k));
-//		}
-//	}
+	from := m.GetHeader(model.EML_HDR_FROM);
+	to := m.GetHeader(model.EML_HDR_TO);
+	subject := m.GetHeader(model.EML_HDR_SUBJECT);
+	content := m.GetContent();
 
-	message := mgp.mg.NewMIMEMessage(ioutil.NopCloser(bytes.NewReader(m.GetRaw())));
+	message := mgp.mg.NewMessage(from,subject,content,to);
 
 	mgp.log.Println("Invoking MailGun API to send e-mail");
 	var mm, mailId, err = mgp.mg.Send(message);
