@@ -59,7 +59,17 @@ func New(docRoot string, port int) *ClientAPI {
 	result.port = port;
 	result.log = utilities.GetLogger("[client api] ", os.Stdout);
 	result.validSessions = make(map[string]string);
+	versionStr, versionStrErr := ioutil.ReadFile(a.docRoot + "/version.txt");
+	if versionStrErr != nil {
+		a.versionStr = "No Version";
+		a.log.Println(versionStrErr.Error());
+	} else {
+		a.versionStr = string(versionStr);
+	}
+
+
 	go result.serve();
+	go result.listenMta();
 	return result;
 }
 
@@ -82,20 +92,11 @@ func (a *ClientAPI) GetEvent() chan mtacontainer.Event {
 
 func (a *ClientAPI) serve() {
 
-	versionStr, versionStrErr := ioutil.ReadFile(a.docRoot + "/version.txt");
-	if versionStrErr != nil {
-		a.versionStr = "No Version";
-		a.log.Println(versionStrErr.Error());
-	} else {
-		a.versionStr = string(versionStr);
-	}
-
 	var mux = http.NewServeMux();
 	mux.HandleFunc("/go.api/alive", a.alivePingHandler);
 	mux.HandleFunc("/go.api/login", a.handleLogin);
 	mux.HandleFunc("/go.api/logout", a.logoutHandler);
 	mux.HandleFunc("/go.api/sendmail", a.sendMailHandler);
-	mux.HandleFunc("/mta/usermessage", a.receiveUserMessage);
 	mux.HandleFunc("/", a.viewHandler);
 
 
@@ -107,6 +108,13 @@ func (a *ClientAPI) serve() {
 	if (err != nil) {
 		log.Fatalln("[ClientApi, Error] " + err.Error());
 	}
+}
+
+func (a *ClientAPI) listenMta() {
+	var mux = http.NewServeMux();
+	mux.HandleFunc("/mta/usermessage", a.receiveUserMessage);
+	err:=http.ListenAndServe(utilities.CLIENT_API_LISTEN_FOR_MTA,mux);
+	a.log.Println("Could not listen for MTA:\n"+err.Error());
 }
 
 func (a *ClientAPI) receiveUserMessage(w http.ResponseWriter, r *http.Request) {
