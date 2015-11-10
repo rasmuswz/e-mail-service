@@ -191,7 +191,8 @@ func (mgp *MailGunProvider) mgSend(m model.Email) {
 		mgp.log.Println("MG Failed to send e-mail");
 		mgp.log.Println(err.Error())
 		if (mgp.failureStrategy.Failure(mtacontainer.EK_CRITICAL) == false) {
-			mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_DOWN_TEMPORARILY, err);
+			mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_WARNING,err,mgp);
+			mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_RESUBMIT, err,m);
 		} else {
 			mgp.Stop(); // we are officially going down
 			mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_FATAL, err);
