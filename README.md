@@ -158,3 +158,12 @@ to 2005-2007 where I maintained a webpage for the Tutor-association at Aarhus Un
 running on a LAMP-box. 
 
 I have no prior experience with the Go language before this exercise.
+
+
+Fixed Bugs (since Sunday November 8th) 
+------
+
+  * NewLines in message resulted in invalid JSon sent from the browser. Fixed by sending Base64 encoded body
+  * Using Screen for running server processes didn't always replace running server-processes properly, now we use disown and pipes to log-files for running the servers and kill -9 to stop them.
+  
+
