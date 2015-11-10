@@ -177,7 +177,7 @@ func (ths *ClientAPI) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 
 		if errAll == nil {
-			ths.log.Println("Adding session id "+sessionId);
+			ths.log.Println("Adding session id "+string(sessionId));
 			ths.validSessions[string(sessionId)] = username;
 			w.Write(sessionId);
 			return;
