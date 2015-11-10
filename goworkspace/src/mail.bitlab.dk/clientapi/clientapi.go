@@ -41,6 +41,7 @@ type ClientAPI struct {
 	events  chan mtacontainer.Event;
 	port    int;
 	log *log.Logger;
+	validSessions map[string]string; // sessionId -> username
 }
 
 
@@ -57,6 +58,7 @@ func New(docRoot string, port int) *ClientAPI {
 	result.events = make(chan mtacontainer.Event);
 	result.port = port;
 	result.log = utilities.GetLogger("[client api] ",os.Stdout);
+	result.validSessions = map[string]string;
 	go result.serve();
 	return result;
 }
@@ -175,6 +177,7 @@ func (ths *ClientAPI) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 
 		if errAll == nil {
+			ths.validSessions[string(sessionId)] = username;
 			w.Write(sessionId);
 			return;
 		}  else {
@@ -193,15 +196,15 @@ func (ths *ClientAPI) handleLogin(w http.ResponseWriter, r *http.Request) {
 // Handle User logout
 //
 func (a *ClientAPI) logoutHandler(w http.ResponseWriter, r *http.Request) {
-	var q = "/logout?session="+r.URL.Query().Get("session");
-	_,err := http.Get("http://localhost" + utilities.RECEIVE_BACKEND_LISTEN_FOR_CLIENT_API + q);
-
-	if err != nil {
-		w.Write([]byte("OK"));
-	}
-	r.Body.Close();
+	defer r.Body.Close();
+	var sessionId = r.URL.Query().Get("session");
+	delete(a.validSessions,sessionId);
 }
 
+
+func validateSession(sessionId string) bool {
+
+}
 
 func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r * http.Request) {
 
@@ -227,7 +230,6 @@ func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r * http.Request) {
 		return;
 	}
 
-	//request.Header["Content-Length"] = []string{goh.IntToStr(len(rawdata))};
 
 
 	if requestError != nil {
@@ -235,6 +237,13 @@ func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r * http.Request) {
 		a.log.Println("Failed to create HttpRequest for MTA Container:\n"+requestError.Error());
 		return;
 	}
+
+	validSession := validateSession(r.Header["SessionId"][0]);
+	if validSession == false {
+		http.Error(w,"Invalid session",http.StatusForbidden);
+		return;
+	}
+
 
 	response, responseErr := http.DefaultClient.Do(request);
 	if responseErr != nil {
