@@ -125,6 +125,12 @@ class ClientAPI {
     this.pingMsgDisp = arg;
   }
 
+  void message(String m){
+    if (this.pingMsgDisp != null) {
+      pingMsgDisp(m);
+    }
+  }
+
   void SetAuthorization(String basicAuth) {
     this.authorization = basicAuth;
   }
@@ -144,6 +150,8 @@ class ClientAPI {
     QueryResponse response = _GetQuery(_path + "/login", "", {"Authorization": "Basic " + basicAuth});
     if (response.OK) {
       return response.Text;
+    } else {
+      message(response.Text);
     }
     return null;
   }
@@ -178,12 +186,12 @@ class ClientAPI {
 
 
   String getVersion() {
-
     QueryResponse resp = _GetQuery("version.txt", "", null);
     if (resp.OK) {
       return resp.Text;
     } else {
       return "no version";
+      message(resp.Text);
     }
   }
 
@@ -196,6 +204,10 @@ class ClientAPI {
     print("Sending data: " + jsonString);
     QueryResponse response = PostQuery(_path + "/sendmail", jsonString,
     {"SessionId": sessionId});
+
+    if  (response.OK == false ) {
+      message(response.Text);
+    }
     return response;
   }
 
