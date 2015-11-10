@@ -21,6 +21,7 @@ import (
 
 	"io/ioutil"
 	"strings"
+	"encoding/base64"
 )
 
 
@@ -62,6 +63,15 @@ func listenForSendBackEnd(container mtacontainer.MTAContainer) {
 				http.Error(w, "Error: Could not deserialise email data", http.StatusInternalServerError);
 				return;
 			}
+
+			//
+			// Content-Type: text/plain; charset=ISO-8859-1
+			// Content-transfer-encoding: base64
+			//
+
+			jemail.Headers["Content-Type"] = "text/plain; charset=UTF-8";
+			jemail.Headers["Content-transfer-encoding"] = "base64";
+			jemail.Content = base64.StdEncoding.EncodeToString([]byte(jemail.Content));
 
 			tos := strings.Split(jemail.Headers["To"], ",");
 			for m := range tos {
