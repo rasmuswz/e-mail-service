@@ -58,7 +58,7 @@ func New(docRoot string, port int) *ClientAPI {
 	result.events = make(chan mtacontainer.Event);
 	result.port = port;
 	result.log = utilities.GetLogger("[client api] ",os.Stdout);
-	result.validSessions = map[string]string;
+	result.validSessions = make(map[string]string);
 	go result.serve();
 	return result;
 }
