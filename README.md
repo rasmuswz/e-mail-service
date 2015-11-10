@@ -165,5 +165,6 @@ Fixed Bugs (since Sunday November 8th)
 
   * NewLines in message resulted in invalid JSon sent from the browser. Fixed by sending Base64 encoded body
   * Using Screen for running server processes didn't always replace running server-processes properly, now we use disown and pipes to log-files for running the servers and kill -9 to stop them.
+  * Fabric build updated with stage_deploy target for testing on [dev.bitlab.dk](https://dev.bitlab.dk). 
   
 
