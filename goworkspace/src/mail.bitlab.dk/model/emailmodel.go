@@ -91,14 +91,12 @@ func (em *EmailImpl) pp() []byte {
 
 	to, _ := parser.Parse(em.headers[EML_HDR_FROM][0]);
 
-	title := em.headers[EML_HDR_SUBJECT][0];
-
 	body := em.content;
 
 	header := make(map[string]string)
 	header[EML_HDR_FROM] = from.String()
 	header[EML_HDR_TO] = to.String()
-	header[EML_HDR_SUBJECT] = encodeRFC2047(title)
+	header[EML_HDR_SUBJECT] = em.headers[EML_HDR_SUBJECT][0];
 	header["MIME-Version"] = "1.0"
 	header["Content-Type"] = "text/plain; charset=\"utf-8\""
 	header["Content-Transfer-Encoding"] = "base64"
