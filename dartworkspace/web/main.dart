@@ -146,7 +146,7 @@ class ComposeEmailWindowController {
     if (_model.sendEmail(mail) == true) {
       _viewController.setSystemMessage("Sending email ok");
     } else {
-      _viewController.setSystemMessage("Failed to sent message");
+      _viewController.setSystemMessage("Failed to send message");
     }
     this.hide();
     this._reset();
