@@ -197,7 +197,7 @@ func (ths *ClientAPI) handleLogin(w http.ResponseWriter, r *http.Request) {
 //
 func (a *ClientAPI) logoutHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close();
-	var sessionId = r.URL.Query().Get("session");
+	var sessionId = r.URL.Query().Get("SessionId");
 	delete(a.validSessions,sessionId);
 }
 
@@ -240,7 +240,12 @@ func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r * http.Request) {
 		return;
 	}
 
-	validSession := a.validateSession(r.Header["SessionId"][0]);
+	if r.Header.Get("SessionId") == "" {
+		http.Error(w,"No session id found",http.StatusForbidden);
+		return;
+	}
+
+	validSession := a.validateSession(r.Header.Get("SessionId"));
 	if validSession == false {
 		http.Error(w,"Invalid session",http.StatusForbidden);
 		return;

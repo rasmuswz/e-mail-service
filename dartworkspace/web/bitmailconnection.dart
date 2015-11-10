@@ -145,7 +145,7 @@ class ClientAPI {
    * Logout un-registering session id
    */
   void doLogout(String sessionId) {
-    QueryResponse response = _GetQuery(_path + "/logout?session=" + sessionId, "", null);
+    QueryResponse response = _GetQuery(_path + "/logout?SessionId=" + sessionId, "", null);
     print("logout response: " + response.Text);
   }
 
@@ -182,7 +182,7 @@ class ClientAPI {
     String jsonString = email.toJson();
     print("Sending data: "+jsonString);
     QueryResponse response = PostQuery(_path + "/sendmail", jsonString,
-          {"sessionID": sessionId}  );
+          {"SessionId": sessionId}  );
     return response;
   }
 
