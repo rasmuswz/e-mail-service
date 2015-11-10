@@ -176,7 +176,7 @@ func (ths *AmazonMtaProvider) serviceSendingEmails() {
 					}
 
 					// message is malformed, discard it but inform the log
-					ths.events <- mtacontainer.NewEvent(mtacontainer.EK_INFORM_USER, errors.New("Message not sent: " + err.Error()), mail);
+					ths.events <- mtacontainer.NewEvent(mtacontainer.EK_INFORM_USER, errors.New("Message not sent: " + err.Error()), mail.GetSessionId());
 					continue;
 				} else {
 

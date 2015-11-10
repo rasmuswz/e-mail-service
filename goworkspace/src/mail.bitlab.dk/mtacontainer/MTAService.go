@@ -338,7 +338,7 @@ func New(scheduler Scheduler) MTAContainer {
 				n := len(result.outgoing);
 				for j := 0; j < n; j++ {
 					result.events <- NewEvent(EK_INFORM_USER,errors.New("No MTAs availble email not sent: "+
-						email.GetHeader(model.EML_HDR_SUBJECT)));
+						email.GetHeader(model.EML_HDR_SUBJECT)),email.GetSessionId());
 				}
 				return; // no more MTAs
 			}
