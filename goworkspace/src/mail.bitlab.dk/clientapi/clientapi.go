@@ -177,6 +177,7 @@ func (ths *ClientAPI) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 
 		if errAll == nil {
+			ths.log.Println("Adding session id "+sessionId);
 			ths.validSessions[string(sessionId)] = username;
 			w.Write(sessionId);
 			return;
@@ -203,8 +204,14 @@ func (a *ClientAPI) logoutHandler(w http.ResponseWriter, r *http.Request) {
 
 
 func (a *ClientAPI) validateSession(sessionId string) bool {
+
 	username, ok := a.validSessions[sessionId];
 	a.log.Println("Sending request from user "+username+" accepted.");
+	if ok == false {
+		a.log.Println("Validating sessionId: "+sessionId+ " failed");
+	} else {
+		a.log.Println("Valid session: "+sessionId);
+	}
 	return ok;
 }
 
