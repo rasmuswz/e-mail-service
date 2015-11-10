@@ -60,6 +60,7 @@ func New(docRoot string, port int) *ClientAPI {
 	result.log = utilities.GetLogger("[client api] ", os.Stdout);
 	result.validSessions = make(map[string]string);
 	versionStr, versionStrErr := ioutil.ReadFile(result.docRoot + "/version.txt");
+	result.pendingMessages = make(map[string][]string);
 	if versionStrErr != nil {
 		result.versionStr = "No Version";
 		result.log.Println(versionStrErr.Error());
