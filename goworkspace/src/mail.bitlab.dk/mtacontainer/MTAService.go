@@ -367,6 +367,7 @@ func (c *DefaultMTAContainer) listenForSendBackEnd() {
 		func(w http.ResponseWriter, r *http.Request) {
 			defer r.Body.Close();
 
+			sessionId := r.Header.Get("SessionId");
 
 			wireMail := model.NewWireEMailFromReader(r.Body);
 			if wireMail == nil {
@@ -381,7 +382,7 @@ func (c *DefaultMTAContainer) listenForSendBackEnd() {
 			tos := strings.Split(wireMail.To(), ",");
 			for m := range tos {
 				wireMail.SetTo(tos[m]);
-				c.GetOutgoing() <- wireMail.ToEmail();
+				c.GetOutgoing() <- wireMail.ToEmail(sessionId);
 			}
 
 		});

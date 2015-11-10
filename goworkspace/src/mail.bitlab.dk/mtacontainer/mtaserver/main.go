@@ -18,7 +18,7 @@ import (
 )
 
 func postUserMessageWithClientAPI(message, sessionId string) {
-	_,e := http.Post(utilities.CLIENT_API_LISTEN_FOR_MTA+"/mta/usermessage?SessionId="+sessionId,"text/plain",strings.NewReader(message));
+	_,e := http.Post("http://localhost"+utilities.CLIENT_API_LISTEN_FOR_MTA+"/mta/usermessage?SessionId="+sessionId,"text/plain",strings.NewReader(message));
 	if e != nil {
 		log.Println("[MTAServer] Failed to poste user message:\n"+message+"\nwith ClientAPI:\n"+e.Error());
 	}
