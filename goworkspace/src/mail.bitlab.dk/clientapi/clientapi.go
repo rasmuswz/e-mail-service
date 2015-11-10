@@ -202,8 +202,10 @@ func (a *ClientAPI) logoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func validateSession(sessionId string) bool {
-
+func (a *ClientAPI) validateSession(sessionId string) bool {
+	username, ok := a.validSessions[sessionId];
+	a.log.Println("Sending request from user "+username+" accepted.");
+	return ok;
 }
 
 func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r * http.Request) {
@@ -238,7 +240,7 @@ func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r * http.Request) {
 		return;
 	}
 
-	validSession := validateSession(r.Header["SessionId"][0]);
+	validSession := a.validateSession(r.Header["SessionId"][0]);
 	if validSession == false {
 		http.Error(w,"Invalid session",http.StatusForbidden);
 		return;
