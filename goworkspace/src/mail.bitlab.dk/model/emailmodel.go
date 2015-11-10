@@ -83,14 +83,8 @@ func encodeRFC2047(String string) string {
 
 func (em *EmailImpl) pp() []byte {
 	var parser mail.AddressParser = mail.AddressParser{};
-	from, err := parser.Parse(em.headers[EML_HDR_FROM][0]);
-	if err != nil {
-		return nil;
-	}
-
-
+	from, _ := parser.Parse(em.headers[EML_HDR_FROM][0]);
 	to, _ := parser.Parse(em.headers[EML_HDR_FROM][0]);
-
 	body := em.content;
 
 	header := make(map[string]string)
@@ -103,7 +97,7 @@ func (em *EmailImpl) pp() []byte {
 
 	message := ""
 	for k, v := range header {
-		message += fmt.Sprintf("headers: %s: %s\r\n", k, v)
+		message += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
 	message += "\r\n" + base64.StdEncoding.EncodeToString([]byte(body))
 
