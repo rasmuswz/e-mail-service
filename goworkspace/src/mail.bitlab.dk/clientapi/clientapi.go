@@ -41,6 +41,7 @@ type ClientAPI struct {
 	log           *log.Logger;
 	validSessions map[string]string; // sessionId -> username
 	versionStr    string;
+	pendingMessages map[string][]string;
 }
 
 
@@ -66,7 +67,33 @@ func New(docRoot string, port int) *ClientAPI {
 		result.versionStr = string(versionStr);
 	}
 	go result.serve();
+	go result.listenMta();
 	return result;
+}
+
+func (a *ClientAPI) listenMta() {
+	var mux = http.NewServeMux();
+	mux.HandleFunc("/mta/usermessage",a.userMsg);
+	err := http.ListenAndServe(utilities.CLIENT_API_LISTEN_FOR_MTA,mux);
+	a.log.Println(err.Error());
+}
+
+func (a *ClientAPI) userMsg(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close();
+	sessionId := r.Header.Get("SessionId");
+	msg,msgErr := ioutil.ReadAll(r.Body);
+	if msgErr != nil {
+		a.log.Println("Failed reading message for user from MTA");
+		return;
+	}
+
+	var msglst,ok = a.pendingMessages[sessionId];
+	if ok == true {
+		msglst = append(msglst,string(msg));
+	} else {
+		msglst = []string{string(msg)};
+	}
+	a.pendingMessages[sessionId] = msglst;
 }
 
 //
@@ -112,6 +139,17 @@ func (a *ClientAPI) serve() {
 //
 func (ths *ClientAPI) alivePingHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close();
+	sessionId := r.Header.Get("SessionId");
+
+	if m,ok := ths.pendingMessages[sessionId]; ok {
+		msg := m[0];
+		w.Write([]byte(msg));
+		if len(m) < 2 {
+			delete(ths.pendingMessages,sessionId);
+		} else {
+			ths.pendingMessages[sessionId] = m[1:];
+		}
+	}
 	w.Write([]byte(ths.versionStr));
 }
 
@@ -200,6 +238,7 @@ func (a *ClientAPI) logoutHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close();
 	var sessionId = r.URL.Query().Get("SessionId");
 	delete(a.validSessions, sessionId);
+	delete(a.pendingMessages,sessionId);
 }
 
 
@@ -249,6 +288,9 @@ func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, requestError.Error(), http.StatusInternalServerError);
 		return;
 	}
+
+
+	request.Header["SessionId"] = []string{r.Header.Get("SessionId")};
 
 	if requestError != nil {
 		http.Error(w, "Failed to create HttpRequest for MTA Container", http.StatusInternalServerError);

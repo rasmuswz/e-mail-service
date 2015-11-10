@@ -35,6 +35,8 @@ type Email interface {
 	GetHeader(key string) string;
 	GetContent() string;
 	GetRaw() []byte;
+	// session id of user sending mail
+	GetSessionId() string;
 
 }
 
@@ -64,7 +66,7 @@ func (ths *WireEmail) SetTo(to string) {
 // Convert an {WireEmail} to {Email}. Data is copied
 // {ths} remains intact.
 //
-func (ths * WireEmail) ToEmail() Email {
+func (ths * WireEmail) ToEmail(sessionId ... string) Email {
 	result := new(EmailImpl);
 
 	str,strErr := base64.StdEncoding.DecodeString(ths.Content);
@@ -75,6 +77,10 @@ func (ths * WireEmail) ToEmail() Email {
 	result.headers = make(map[string][]string);
 	for k,v := range ths.Headers {
 		result.headers[k] = []string{v};
+	}
+
+	if len(sessionId) == 1 {
+		result.sessionId = sessionId[0];
 	}
 
 	return result;
@@ -140,6 +146,15 @@ const (
 type EmailImpl struct {
 	headers map[string][]string;
 	content string;
+	sessionId string;
+}
+
+func (ths *EmailImpl) SetSessionId(id string) {
+	ths.sessionId = id;
+}
+
+func (ths *EmailImpl) GetSessionId() string {
+	return ths.sessionId;
 }
 
 // support the common case of reading the first (and typically only) value

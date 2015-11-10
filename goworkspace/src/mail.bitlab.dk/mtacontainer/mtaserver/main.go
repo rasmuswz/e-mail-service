@@ -12,7 +12,17 @@ import (
 	"mail.bitlab.dk/mtacontainer"
 	"os"
 	"mail.bitlab.dk/utilities"
+	"net/http"
+	"strings"
+	"log"
 )
+
+func postUserMessageWithClientAPI(message, sessionId string) {
+	_,e := http.Post(utilities.CLIENT_API_LISTEN_FOR_MTA+"/mta/usermessage?SessionId="+sessionId,"text/plain",strings.NewReader(message));
+	if e != nil {
+		log.Println("[MTAServer] Failed to poste user message:\n"+message+"\nwith ClientAPI:\n"+e.Error());
+	}
+}
 
 func main() {
 
@@ -41,6 +51,10 @@ func main() {
 		log.Println(e.GetError());
 		if e.GetKind() == mtacontainer.EK_GOOD_BYE {
 			break;
+		}
+
+		if e.GetKind() == mtacontainer.EK_INFORM_USER {
+			postUserMessageWithClientAPI(e.GetError().Error(),e.GetPayload().(string));
 		}
 	}
 
