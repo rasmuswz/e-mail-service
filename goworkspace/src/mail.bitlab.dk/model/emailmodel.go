@@ -5,6 +5,7 @@ import (
 	"net/mail"
 	"io/ioutil"
 	"log"
+	"encoding/base64"
 )
 /**
  *
@@ -79,6 +80,7 @@ func (em *EmailImpl) GetRaw() []byte {
 		buffer.WriteString(k + ":" + v[0] + "\n");
 	}
 	buffer.WriteString("\n");
+	var stringContent = base64.StdEncoding.D
 	buffer.WriteString(em.GetContent());
 
 	return buffer.Bytes();

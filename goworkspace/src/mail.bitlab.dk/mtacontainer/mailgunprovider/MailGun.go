@@ -15,6 +15,9 @@ import (
 	"mail.bitlab.dk/mtacontainer"
 	"mail.bitlab.dk/utilities"
 	"mail.bitlab.dk/utilities/go"
+	"encoding/base64"
+	"strings"
+	"bytes"
 )
 
 const (
@@ -176,16 +179,19 @@ func (mgp *MailGunProvider) sendingRoutine() {
 
 func (mgp *MailGunProvider) mgSend(m model.Email) {
 
-	var message = mgp.mg.NewMessage(m.GetHeader(model.EML_HDR_FROM),
-		m.GetHeader(model.EML_HDR_SUBJECT),
-		m.GetContent(),
-		m.GetHeader(model.EML_HDR_TO));
-	for k,_ := range m.GetHeaders() {
-		if k != model.EML_HDR_SUBJECT && k != model.EML_HDR_FROM && k != model.EML_HDR_TO {
-			log.Println("Adding header: h["+k+"]="+m.GetHeader(k));
-			message.AddHeader(k, m.GetHeader(k));
-		}
-	}
+//
+//	var message = mgp.mg.NewMessage(m.GetHeader(model.EML_HDR_FROM),
+//		m.GetHeader(model.EML_HDR_SUBJECT),
+//		stringContent,
+//		m.GetHeader(model.EML_HDR_TO));
+//	for k,_ := range m.GetHeaders() {
+//		if k != model.EML_HDR_SUBJECT && k != model.EML_HDR_FROM && k != model.EML_HDR_TO {
+//			log.Println("Adding header: h["+k+"]="+m.GetHeader(k));
+//			message.AddHeader(k, m.GetHeader(k));
+//		}
+//	}
+
+	message := mgp.mg.NewMIMEMessage(bytes.NewReader(m.GetRaw()));
 
 	mgp.log.Println("Invoking MailGun API to send e-mail");
 	var mm, mailId, err = mgp.mg.Send(message);
