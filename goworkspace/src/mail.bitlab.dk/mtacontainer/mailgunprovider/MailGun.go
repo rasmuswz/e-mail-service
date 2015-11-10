@@ -181,14 +181,14 @@ func (mgp *MailGunProvider) mgSend(m model.Email) {
 		m.GetContent(),
 		m.GetHeader(model.EML_HDR_TO));
 	for k,_ := range m.GetHeaders() {
-		if k != model.EML_HDR_SUBJECT && k != model.EML_HDR_FROM {
+		if k != model.EML_HDR_SUBJECT && k != model.EML_HDR_FROM && k != model.EML_HDR_TO {
+			log.Println("Adding header: h["+k+"]="+m.GetHeader(k));
 			message.AddHeader(k, m.GetHeader(k));
 		}
 	}
 
 	mgp.log.Println("Invoking MailGun API to send e-mail");
 	var mm, mailId, err = mgp.mg.Send(message);
-
 
 	// report MailGunProvider as down
 	if err != nil {

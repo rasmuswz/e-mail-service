@@ -63,6 +63,7 @@ func listenForSendBackEnd(container mtacontainer.MTAContainer) {
 				return;
 			}
 
+
 			log.Println("Encoded content: "+jemail.Content);
 
 			tos := strings.Split(jemail.Headers["To"], ",");
