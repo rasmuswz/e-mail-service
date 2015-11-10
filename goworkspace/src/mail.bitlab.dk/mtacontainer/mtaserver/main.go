@@ -21,7 +21,6 @@ import (
 
 	"io/ioutil"
 	"strings"
-	"encoding/base64"
 )
 
 
