@@ -211,6 +211,7 @@ func (mgp *MailGunProvider) mgSend(m model.Email) {
 		mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_BEAT,
 			errors.New("MailGun says: " + mm + " for sending message giving it id " + mailId));
 		mgp.log.Println("After sending event on event channel");
+		mgp.events <- mtacontainer.NewEvent(mtacontainer.EK_INFORM_USER,errors.New("Mail Delivered With MailGun Successfully"));
 
 	}
 }

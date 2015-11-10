@@ -143,6 +143,7 @@ func (ths *SendGridProvider) sgSend(m model.Email) {
 		ths.failureStrategy.Success();
 		ths.events <- mtacontainer.NewEvent(mtacontainer.EK_BEAT,
 			errors.New("SendGrid send a message"));
+		ths.events <- mtacontainer.NewEvent(mtacontainer.EK_INFORM_USER,errors.New("Mail Delivered With SendGrid Successfully"));
 
 	}
 }

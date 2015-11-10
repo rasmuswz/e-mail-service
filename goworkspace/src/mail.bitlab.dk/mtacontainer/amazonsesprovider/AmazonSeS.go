@@ -192,7 +192,7 @@ func (ths *AmazonMtaProvider) serviceSendingEmails() {
 			}
 
 			log.Println(resp);
-			ths.events <- mtacontainer.NewEvent(mtacontainer.EK_BEAT,errors.New("Mail successfully sent"),ths);
+			ths.events <- mtacontainer.NewEvent(mtacontainer.EK_INFORM_USER,errors.New("Mail Delivered With Amazon SeS Successfully"));
 			ths.failureStrategy.Success();
 		}
 
