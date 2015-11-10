@@ -64,15 +64,6 @@ func listenForSendBackEnd(container mtacontainer.MTAContainer) {
 				return;
 			}
 
-			//
-			// Content-Type: text/plain; charset=ISO-8859-1
-			// Content-transfer-encoding: base64
-			//
-
-			jemail.Headers["Content-Type"] = "text/plain; charset=UTF-8";
-			jemail.Headers["Content-transfer-encoding"] = "base64";
-			jemail.Content = base64.StdEncoding.EncodeToString([]byte(jemail.Content));
-
 			log.Println("Encoded content: "+jemail.Content);
 
 			tos := strings.Split(jemail.Headers["To"], ",");

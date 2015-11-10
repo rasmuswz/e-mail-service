@@ -207,6 +207,7 @@ func (a *ClientAPI) sendMailHandler(w http.ResponseWriter, r * http.Request) {
 
 	defer r.Body.Close();
 
+
 	a.log.Println("Sending mail");
 
 	rawdata,dataErr := ioutil.ReadAll(r.Body);

@@ -46,7 +46,14 @@ class Email {
   }
 
   String toJson() {
-    return """{"Headers":{"From":"${this._from}","Subject":"${this._subject}","To":"${this._to}"},"Content":"${this._content}"}""";
+    return """
+      {"Headers":{"From":"${this._from}",
+       "Subject":"${this._subject}",
+       "Content-Type: text/plain; charset=UTF-8",
+       Content-transfer-encoding: base64,
+       "To":"${this._to}"},
+       "Content":"${window.atob(this._content)}"}
+       """;
   }
 
   Email(this._from, this._subject) {
