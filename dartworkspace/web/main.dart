@@ -324,6 +324,7 @@ main() {
   ClientAPI conn = new ClientAPI("/go.api");
   BitMailModel model = new BitMailModel(conn);
   ViewController view = new ViewController(model);
+  conn.SetPinger( (msg) => view.setSystemMessage(msg));
   displayVersionString(model);
   view.display();
 }

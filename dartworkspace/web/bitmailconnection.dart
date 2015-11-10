@@ -11,7 +11,7 @@ import 'dart:async';
 import 'dart:html';
 import 'mailmodel.dart';
 
-type PingMessageDisplayer(String pingMessage);
+typedef void PingMessageDisplayer(String pingMessage);
 
 /**
  *
@@ -25,6 +25,7 @@ class QueryResponse {
   QueryResponse.Ok(this.Text) {
     OK = true;
   }
+
   QueryResponse.Fail(this.Text) {
     OK = false;
   }
@@ -38,7 +39,7 @@ QueryResponse PostQuery(String path, String data, Map<String, String> headers) {
   // Set custom headers
   if (headers != null) {
     headers.forEach((key, value) {
-      print("setting headers["+key+"]="+value);
+      print("setting headers[" + key + "]=" + value);
       req.setRequestHeader(key, value);
     });
   }
@@ -53,11 +54,11 @@ QueryResponse PostQuery(String path, String data, Map<String, String> headers) {
 
   // check if everything is fine.
   if (req.status == 200) {
-    print("ResponseText:"+req.responseText);
+    print("ResponseText:" + req.responseText);
     return new QueryResponse.Ok(req.responseText);
   } else {
     // not fine, write error to browser JS-console.
-    print("StatusText:"+req.statusText);
+    print("StatusText:" + req.statusText);
     return new QueryResponse.Fail(req.statusText);
   }
 
@@ -73,7 +74,7 @@ QueryResponse _GetQuery(String path, String data, Map<String, String> headers) {
   // Set custom headers
   if (headers != null) {
     headers.forEach((key, value) {
-      print("setting headers["+key+"]="+value);
+      print("setting headers[" + key + "]=" + value);
       req.setRequestHeader(key, value);
     });
   }
@@ -88,11 +89,11 @@ QueryResponse _GetQuery(String path, String data, Map<String, String> headers) {
 
   // check if everything is fine.
   if (req.status == 200) {
-    print("ResponseText:"+req.responseText);
+    print("ResponseText:" + req.responseText);
     return new QueryResponse.Ok(req.responseText);
   } else {
     // not fine, write error to browser JS-console.
-    print("StatusText:"+req.statusText+" "+req.responseText);
+    print("StatusText:" + req.statusText + " " + req.responseText);
     return new QueryResponse.Fail(req.statusText);
   }
 
@@ -113,12 +114,15 @@ class ClientAPI {
   PingMessageDisplayer pingMsgDisp;
 
 
-
-  ClientAPI(String path,this.pingMsgDisp) {
+  ClientAPI(String path) {
     this._path = path;
     _previousAlive = false;
     new Timer.periodic(new Duration(seconds: 5), _check);
     this.stateListeners = new List<ConnectionListener>();
+  }
+
+  void SetPinger(PingMessageDisplayer arg) {
+    this.pingMsgDisp = arg;
   }
 
   void SetAuthorization(String basicAuth) {
@@ -156,7 +160,7 @@ class ClientAPI {
   // Check that the connection to the server is alive.
   //
   void _check(Timer t) {
-    QueryResponse  resp = _GetQuery(_path + "/alive?state", "", null);
+    QueryResponse resp = _GetQuery(_path + "/alive?state", "", null);
     _alive = resp.OK;
     if (_alive != _previousAlive) {
       print("Notifying " + stateListeners.length.toString() + " listeners");
@@ -166,14 +170,16 @@ class ClientAPI {
       _previousAlive = _alive;
     }
     if (resp.Text.startsWith("!")) {
-      this.pingMsgDisp(resp.Text.substring(1));
+      if (this.pingMsgDisp != null) {
+        this.pingMsgDisp(resp.Text.substring(1));
+      }
     }
   }
 
 
   String getVersion() {
 
-    QueryResponse resp = _GetQuery("version.txt","",null);
+    QueryResponse resp = _GetQuery("version.txt", "", null);
     if (resp.OK) {
       return resp.Text;
     } else {
@@ -187,9 +193,9 @@ class ClientAPI {
    */
   QueryResponse SendAnEmail(Email email, String sessionId) {
     String jsonString = email.toWireMail();
-    print("Sending data: "+jsonString);
+    print("Sending data: " + jsonString);
     QueryResponse response = PostQuery(_path + "/sendmail", jsonString,
-          {"SessionId": sessionId}  );
+    {"SessionId": sessionId});
     return response;
   }
 
