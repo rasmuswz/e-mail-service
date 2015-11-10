@@ -42,9 +42,9 @@ buildCmdPrefix = "go install mail.bitlab.dk/";
 
 
 def build_goworkspace(tag):
-    path = os.environ["PATH"];
-    path = path + ":" + os.path.realpath("thirdparty/go/bin")
+    path = ":" + os.path.realpath("thirdparty/go/bin")
     path = path + ":" + os.path.realpath("thirdparty/dart-sdk/bin");
+    path = path + os.environ["PATH"];
 
     with lcd("goworkspace"):
         with shell_env(GOPATH=os.path.realpath("goworkspace"),
