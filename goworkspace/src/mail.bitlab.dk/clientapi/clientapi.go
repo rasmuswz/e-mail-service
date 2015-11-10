@@ -150,8 +150,9 @@ func (ths *ClientAPI) alivePingHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			ths.pendingMessages[sessionId] = m[1:];
 		}
+	} else {
+		w.Write([]byte(ths.versionStr));
 	}
-	w.Write([]byte(ths.versionStr));
 }
 
 //
