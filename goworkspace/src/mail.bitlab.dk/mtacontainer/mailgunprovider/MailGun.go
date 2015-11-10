@@ -15,9 +15,8 @@ import (
 	"mail.bitlab.dk/mtacontainer"
 	"mail.bitlab.dk/utilities"
 	"mail.bitlab.dk/utilities/go"
-	"encoding/base64"
-	"strings"
 	"bytes"
+	"io/ioutil"
 )
 
 const (
@@ -191,7 +190,7 @@ func (mgp *MailGunProvider) mgSend(m model.Email) {
 //		}
 //	}
 
-	message := mgp.mg.NewMIMEMessage(bytes.NewReader(m.GetRaw()));
+	message := mgp.mg.NewMIMEMessage(ioutil.NopCloser(bytes.NewReader(m.GetRaw())));
 
 	mgp.log.Println("Invoking MailGun API to send e-mail");
 	var mm, mailId, err = mgp.mg.Send(message);
