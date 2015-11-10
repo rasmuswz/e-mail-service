@@ -26,6 +26,48 @@ import 'dart:async';
 import 'mailmodel.dart';
 import 'bitmailconnection.dart';
 
+/**
+ * Checks that {input} contains only characters from {validCodePoints}
+ */
+bool checkValidInput(String input, List<int> validCodePoints) {
+  for (int i =0; i < input.length;++i) {
+    int c = input.codeUnitAt(i);
+    if (validCodePoints.contains(c) == false) {
+      return false;
+    }
+  }
+}
+
+bool checkValidLogin(String username) {
+  return checkValidInput(username,"abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ".codeUnits);
+}
+
+bool checkValidEmailTo(String mail) {
+  if (mail.codeUnits.contains("@") == false) {
+    return false;
+  }
+
+  var parts = mail.split("@");
+  if (parts.length != 2) {
+    return false;
+  }
+
+  return true;
+}
+
+bool checkToHeader(String to) {
+  checkValidInput(to,username,"abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ@0123456789,".codeUnits);
+
+  List<String> a = to.split(",");
+  a.forEach( (mailAddr) {
+    if (checkValidEmail(mailAddr) ==false) {
+      return false;
+    }
+  });
+
+  return true;
+}
+
 
 class SystemMessageController {
   Element msg;
@@ -92,6 +134,13 @@ class ComposeEmailWindowController {
   void _handleSendClick() {
     Email mail = new Email.WithModel(_model, this.Recipients, this.Subject);
     mail.setContent(this._content.value);
+
+    if (checkValidEmailTo(this.Recipients) == false) {
+      _viewController.setSystemMessage("Invalid To. Only [a-zA-Z0-9] are allowed in before and after the @<br/>" +
+      "Separate by comma.");
+      return;
+    }
+
     if (_model.sendEmail(mail) == true) {
       _viewController.setSystemMessage("Sending email ok");
     } else {
@@ -135,6 +184,12 @@ class LoginWindowController {
     view.style.display = 'block';
 
     signInbutton.onClick.listen((e) {
+
+      if (checkValidLogin(username.value) == false) {
+        viewController.setSystemMessage("Invalid username can only contain upper and lower case letters [a-zA-Z].");
+        return;
+      }
+
       var ok = model.logIn(username.value, password.value);
       if (ok) {
         this.hideWindow();

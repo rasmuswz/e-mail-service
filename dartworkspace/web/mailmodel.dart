@@ -158,6 +158,9 @@ class BitMailModel {
   get IsLoggedIn => basicAuth != null;
 
 
+
+
+
   bool sendEmail(Email mail) {
     return connection.SendAnEmail(mail, this.session).OK;
   }

@@ -175,6 +175,7 @@ class ClientAPI {
     }
   }
 
+
   /**
    * Send an e-mail for delivery
    */

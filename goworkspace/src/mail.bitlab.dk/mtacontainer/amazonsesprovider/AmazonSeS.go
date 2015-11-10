@@ -141,7 +141,7 @@ func (ths *AmazonMtaProvider) serviceSendingEmails() {
 			resp, err := ths.amazonApi.SendRawEmail(params)
 
 			if err != nil {
-				ths.log.Println("[Critical] Failed to send E-mail. Please examine !!!", err.Error());
+				ths.log.Println("[Critical] Failed to send E-mail. Please examine !!!\n", err.Error());
 
 				if (ths.failureStrategy.Failure(mtacontainer.EK_CRITICAL) == false) {
 					ths.events <- mtacontainer.NewEvent(mtacontainer.EK_WARNING, err, ths);
