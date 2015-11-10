@@ -190,8 +190,8 @@ class ClientAPI {
     if (resp.OK) {
       return resp.Text;
     } else {
-      return "no version";
       message(resp.Text);
+      return "no version";
     }
   }
 
