@@ -109,6 +109,8 @@ func (em *EmailImpl) pp() []byte {
 	}
 	message += "\r\n" + base64.StdEncoding.EncodeToString([]byte(body))
 
+	log.Println("[GetRaw]:\n"+message);
+
 	var src []byte = []byte(body);
 	n := len(src);
 	var dst []byte = make([]byte,  (int(math.Floor(  float64(n / 3))) + 1) * 4 + 1);
