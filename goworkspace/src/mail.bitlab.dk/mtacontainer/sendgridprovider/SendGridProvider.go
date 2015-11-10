@@ -118,7 +118,10 @@ func (ths *SendGridProvider) sgSend(m model.Email) {
 			message.AddHeader(k, m.GetHeader(k));
 		}
 	}
+
 	message.SetText(m.GetContent());
+
+
 
 	err := ths.sg.Send(message)
 
